@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TapTalk</title>
+    <link rel="stylesheet" href="renderer/styles/tokens.css" />
+    <link rel="stylesheet" href="renderer/styles/base.css" />
+    <link rel="stylesheet" href="renderer/styles/components.css" />
+    <link rel="stylesheet" href="renderer/styles/shared.css" />
+    <link rel="stylesheet" href="renderer/styles/dashboard.css" />
+  </head>
+  <body>
+    <!-- Ambient aurora background -->
+    <div class="aurora" aria-hidden="true">
+      <div class="aurora__blob aurora__blob--1"></div>
+      <div class="aurora__blob aurora__blob--2"></div>
+      <div class="aurora__blob aurora__blob--3"></div>
+    </div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <div class="app cockpit">
+      <!-- ── Floating top dock (drag region) ── -->
+      <header class="topbar" id="topbar">
+        <div class="topbar-brand">
+          <span class="brand-logo" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></span>
+          <span class="brand-name">TapTalk</span>
+        </div>
+        <nav class="nav-dock" id="sidebarNav">
+          <button class="nav-item sidebar-item active" data-view="dashboard" type="button">
+            <span class="nav-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></span>
+            <span class="nav-item-label">Dictate</span>
+          </button>
+          <button class="nav-item sidebar-item" data-view="history" type="button">
+            <span class="nav-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></span>
+            <span class="nav-item-label">History</span>
+          </button>
+          <button class="nav-item sidebar-item" data-view="settings" type="button">
+            <span class="nav-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+            <span class="nav-item-label">Settings</span>
+          </button>
+        </nav>
+        <div class="topbar-status">
+          <span class="sidebar-status-dot" aria-hidden="true"></span>
+          <span class="sidebar-status-mode" id="sidebarModeLabel">Local</span>
+          <span id="providerTag" class="provider-tag" style="display:none"></span>
+          <button id="themeToggleBtn" class="theme-toggle-btn" type="button" title="Theme: System" aria-label="Theme: System" data-theme-current="system">
+            <svg class="theme-icon theme-icon--system" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            <svg class="theme-icon theme-icon--light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.22" y1="4.22" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.78" y2="19.78"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.22" y1="19.78" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.78" y2="4.22"></line></svg>
+            <svg class="theme-icon theme-icon--dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ── Immersive stage ── -->
+      <main class="main-body cockpit-stage" id="stage">
+
+          <!-- Update banner -->
+          <div id="updateBanner" class="update-banner" style="display:none" role="status">
+            <div class="update-banner-row">
+              <span class="update-banner-icon" aria-hidden="true">&#11014;&#65039;</span>
+              <span class="update-banner-text">
+                <strong>Updated to v<span id="updateBannerVersion">?</span></strong>
+                — macOS may require re-granting Accessibility / Input Monitoring
+                permissions after this update.
+              </span>
+              <button id="updateBannerDismissBtn" class="update-banner-close" type="button" aria-label="Dismiss">&#10005;</button>
+            </div>
+            <div class="update-banner-row">
+              <button id="updateBannerPermissionsBtn" class="update-banner-action" type="button">Open permissions check</button>
+            </div>
+          </div>
+
+          <!-- ── Dictate (cockpit stage) ── -->
+          <div id="viewDashboard" class="view stage-dictate active">
+            <div class="stage-orbit">
+              <div class="hero-btn-wrap">
+                <button id="recBtn" class="hero-rec-btn" data-phase="idle" type="button" aria-label="Start Recording">
+                  <div class="hero-halo" aria-hidden="true"></div>
+                  <div class="hero-spin" aria-hidden="true"></div>
+                  <div class="hero-pulse" aria-hidden="true"></div>
+                  <div class="hero-pulse hero-pulse--2" aria-hidden="true"></div>
+                  <div class="hero-ring" aria-hidden="true">
+                    <div class="hero-core">
+                      <div class="hero-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+                      <svg class="hero-rec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                    </div>
+                  </div>
+                </button>
+                <span id="recLabel" class="hero-rec-label">Start Recording</span>
+                <span class="hero-rec-hint">Press Fn to start / stop</span>
+              </div>
+            </div>
+
+            <div class="stage-meta">
+              <span class="meta-dot" aria-hidden="true"></span>
+              <span id="hudMode">Local</span>
+              <span class="meta-sep" aria-hidden="true">·</span>
+              <span id="hudLang">auto</span>
+              <span class="meta-sep" aria-hidden="true">·</span>
+              <span id="hudModel">on-device</span>
+            </div>
+
+            <div class="stage-transcript">
+              <div class="stage-transcript-head">
+                <span class="stage-transcript-eyebrow">Last transcription</span>
+                <button id="copyBtn" class="copy-btn" type="button">Copy</button>
+              </div>
+              <div id="transcriptBox" class="stage-transcript-text"></div>
+              <span class="stage-transcript-time" id="transcriptTime"></span>
+            </div>
+
+            <div class="status-row">
+              <div class="status-left">
+                <span id="statusText" class="status-msg">Ready</span>
+                <span id="errorText" class="status-err" style="display:none"></span>
+                <button id="openAccessibilityBtn" class="status-help-btn" type="button" style="display:none">Enable Fn in macOS</button>
+                <button id="useFallbackHotkeyBtn" class="status-fallback-btn" type="button" style="display:none">Use Cmd+Shift+Space</button>
+                <span id="fnHint" class="status-hint" style="display:none">Hold Fn ~0.2 s to record, or tap Fn + Space for hands-free.</span>
+              </div>
+            </div>
+
+            <!-- recent list kept for the renderer; surfaced fully in History -->
+            <div class="recent-wrap recent-wrap--stowed">
+              <div id="recentList" class="recent-list"></div>
+            </div>
+          </div>
+
+          <!-- ── History (memory river) ── -->
+          <div id="viewHistory" class="view stage-history">
+            <div class="history-header">
+              <span class="history-title">History</span>
+              <button id="clearHistoryBtn" class="recent-clear-btn" type="button" disabled>Clear</button>
+            </div>
+            <div id="historyFullList" class="recent-list river"></div>
+          </div>
+
+          <!-- ── Settings view ── -->
+          <div id="viewSettings" class="view">
+            <div id="settingsPanel" class="settings-panel open">
+              <button id="settingsTrigger" class="settings-trigger" type="button">
+                <span>Settings</span>
+                <span class="chev">&#9662;</span>
+              </button>
+
+              <div class="settings-inner">
+                <div class="settings-form">
+                  <div class="settings-tabs">
+                    <button id="tabGeneralBtn" class="settings-tab-btn active" type="button">General</button>
+                    <button id="tabLocalBtn" class="settings-tab-btn" type="button">Local AI</button>
+                    <button id="tabCloudBtn" class="settings-tab-btn" type="button">Cloud API</button>
+                    <button id="tabEditingBtn" class="settings-tab-btn" type="button">Text Editing</button>
+                  </div>
+
+                  <div id="tabGeneralPanel" class="settings-tab-panel">
+                    <!-- Top toggles (per design) -->
+                    <label class="check-row check-row--divided"><input id="launchAtLoginCheck" type="checkbox" /> Launch at Login</label>
+                    <label class="check-row check-row--divided"><input id="showIndicatorCheck" type="checkbox" checked /> Show Floating Indicator</label>
+                    <label class="check-row check-row--divided"><input id="autopasteCheck" type="checkbox" /> Auto-paste to Active App</label>
+
+                    <select id="themeSelect" style="display:none" aria-hidden="true">
+                      <option value="system">System</option>
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                    </select>
+
+                    <!-- Hotkey -->
+                    <div class="field-group field-group--inline">
+                      <label>Hotkey</label>
+                      <select id="hotkeyProfileSelect" class="hotkey-select-pill">
+                        <option value="fn_space">Fn + Space</option>
+                        <option value="cmd_space">Cmd + Space</option>
+                        <option value="cmd_shift_space">Cmd + Shift + Space</option>
+                      </select>
+                    </div>
+
+                    <!-- Primary mode -->
+                    <div class="field-group">
+                      <label>Primary mode</label>
+                      <div class="mode-row">
+                        <button id="modeLocalBtn" class="mode-btn" type="button">Local</button>
+                        <button id="modeCloudBtn" class="mode-btn" type="button">Cloud</button>
+                      </div>
+                    </div>
+
+                    <!-- Language -->
+                    <div class="field-group">
+                      <label for="languageModeSelect">Language</label>
+                      <select id="languageModeSelect"></select>
+                      <label id="languageIncludeEnglishRow" class="check-row">
+                        <input id="languageIncludeEnglishCheck" type="checkbox" />
+                        Include English
+                      </label>
+                      <div class="hint">For cloud providers this enables auto-detection (many APIs accept one explicit language only).</div>
+                    </div>
+
+                    <!-- Advanced -->
+                    <div class="settings-advanced" data-advanced-key="general">
+                      <button class="settings-advanced-toggle" type="button" aria-expanded="false">
+                        <svg class="settings-advanced-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        Advanced
+                      </button>
+                      <div class="settings-advanced-body">
+                        <label class="check-row"><input id="fallbackCheck" type="checkbox" /> Enable fallback (use opposite mode)</label>
+                        <div class="field-group">
+                          <label for="secretBackendSelect">API key storage</label>
+                          <select id="secretBackendSelect">
+                            <option value="settings">settings.json (no system prompts)</option>
+                            <option value="safeStorage">macOS Keychain (encrypted)</option>
+                          </select>
+                          <div class="hint">Keychain keeps cloud transcription keys and remote edit keys outside config files. Plain-text mode stores keys in `~/.taptalk/settings.json`.</div>
+                        </div>
+                        <button id="openWizardBtn" class="secondary-btn" type="button">Run setup wizard</button>
+                        <button id="resetOnboardingBtn" class="secondary-btn" type="button">Reset setup state</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="tabLocalPanel" class="settings-tab-panel hidden">
+                    <div class="field-group">
+                      <label for="localEngineSelect">Local engine</label>
+                      <select id="localEngineSelect">
+                        <option value="faster-whisper">faster-whisper (Python)</option>
+                        <option value="whisper-cpp">whisper.cpp (Native)</option>
+                      </select>
+                      <div class="hint">faster-whisper needs Python. whisper.cpp is a native binary (no Python) with Metal GPU acceleration on Apple Silicon.</div>
+                    </div>
+
+                    <div id="whisperCppSection" class="hidden">
+                      <div class="field-group">
+                        <label for="whisperCppModelInput">GGML model</label>
+                        <select id="whisperCppModelInput">
+                          <option value="tiny">tiny (~75 MB)</option>
+                          <option value="base">base (~142 MB)</option>
+                          <option value="small">small (~466 MB)</option>
+                          <option value="medium">medium (~1.5 GB)</option>
+                          <option value="large-v1">large-v1 (~2.9 GB)</option>
+                          <option value="large-v2">large-v2 (~2.9 GB)</option>
+                          <option value="large-v3">large-v3 (~2.9 GB)</option>
+                          <option value="large-v3-turbo">large-v3-turbo (~1.5 GB)</option>
+                        </select>
+                      </div>
+                      <div class="field-group">
+                        <label for="whisperCppThreadsInput">Threads</label>
+                        <input id="whisperCppThreadsInput" type="text" placeholder="4" />
+                      </div>
+                      <label class="check-row"><input id="whisperCppUseGpuCheck" type="checkbox" /> Use GPU (Metal)</label>
+                      <div class="field-group">
+                        <div class="key-row">
+                          <button id="whisperCppDownloadBtn" class="secondary-btn" type="button">Download / verify model</button>
+                          <span id="whisperCppModelStatus" class="key-status">Unknown</span>
+                        </div>
+                        <div id="whisperCppProgress" class="hint" style="display:none"></div>
+                      </div>
+                    </div>
+
+                    <div id="localSection">
+                      <div class="field-group">
+                        <label>Whisper preset</label>
+                        <div class="preset-row">
+                          <button class="preset-btn" data-preset="ultrafast" type="button">Fast</button>
+                          <button class="preset-btn" data-preset="balanced" type="button">Balanced</button>
+                          <button class="preset-btn" data-preset="quality" type="button">Quality</button>
+                        </div>
+                      </div>
+                      <div class="field-group"><label for="localModelInput">Local model</label>
+                        <select id="localModelInput">
+                          <option value="tiny">tiny (~75 MB)</option>
+                          <option value="base">base (~145 MB)</option>
+                          <option value="small">small (~480 MB)</option>
+                          <option value="medium">medium (~1.5 GB)</option>
+                          <option value="large-v1">large-v1 (~2.9 GB)</option>
+                          <option value="large-v2">large-v2 (~2.9 GB)</option>
+                          <option value="large-v3">large-v3 (~2.9 GB)</option>
+                          <option value="large-v3-turbo">large-v3-turbo (~1.6 GB)</option>
+                        </select>
+                      </div>
+                      <div class="field-group"><label for="localDeviceInput">Device</label><input id="localDeviceInput" type="text" placeholder="cpu" /></div>
+                      <label class="check-row"><input id="localVadFilterCheck" type="checkbox" /> Enable VAD filter</label>
+
+                      <div class="settings-advanced" data-advanced-key="local">
+                        <button class="settings-advanced-toggle" type="button" aria-expanded="false">
+                          <svg class="settings-advanced-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                          Advanced
+                        </button>
+                        <div class="settings-advanced-body">
+                          <div class="field-group"><label for="localPythonPathInput">Python executable</label><input id="localPythonPathInput" type="text" placeholder="python3 or /path/to/python" /></div>
+                          <div class="field-group"><label for="localComputeTypeInput">Compute type</label><input id="localComputeTypeInput" type="text" placeholder="int8, float16, ..." /></div>
+                          <div class="field-group"><label for="localBeamSizeInput">Beam size</label><input id="localBeamSizeInput" type="text" placeholder="1" /></div>
+                          <div class="field-group"><label for="localCpuThreadsInput">CPU threads</label><input id="localCpuThreadsInput" type="text" placeholder="4" /></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="tabCloudPanel" class="settings-tab-panel hidden">
+                    <div id="cloudSection">
+                      <div class="field-group"><label for="cloudPresetSelect">Cloud service</label><select id="cloudPresetSelect"></select></div>
+                      <div class="field-group">
+                        <label>API key</label>
+                        <div class="key-row">
+                          <button id="setApiKeyBtn" class="secondary-btn" type="button">Set API Key</button>
+                          <span id="apiKeyStatus" class="key-status">No key</span>
+                        </div>
+                      </div>
+                      <div class="field-group"><label for="cloudModelInput">Model</label><input id="cloudModelInput" type="text" placeholder="whisper-large-v3-turbo" /></div>
+                      <div id="customFields" class="section hidden">
+                        <div class="section-label">Custom</div>
+                        <div class="field-group"><label for="cloudUrlInput">URL</label><input id="cloudUrlInput" type="text" placeholder="https://..." /></div>
+                        <div class="field-group"><label for="cloudAuthHeaderInput">Auth header</label><input id="cloudAuthHeaderInput" type="text" placeholder="Authorization" /></div>
+                        <div class="field-group"><label for="cloudAuthValueInput">Auth value template</label><input id="cloudAuthValueInput" type="text" placeholder="Bearer {{key}}" /></div>
+                        <div class="field-group"><label for="cloudBodyFormatSelect">Body format</label><select id="cloudBodyFormatSelect"><option value="formdata">formdata</option><option value="binary">binary</option></select></div>
+                        <div class="field-group"><label for="cloudAudioFieldInput">Audio field name</label><input id="cloudAudioFieldInput" type="text" placeholder="file" /></div>
+                        <div class="field-group"><label for="cloudQueryParamsInput">Query params</label><input id="cloudQueryParamsInput" type="text" placeholder="model={{model}},language={{language}}" /><div class="hint">Format: key=value, key=value</div></div>
+                        <div class="field-group"><label for="cloudExtraFormFieldsInput">Extra form fields</label><input id="cloudExtraFormFieldsInput" type="text" placeholder="temperature=0.0,response_format=verbose_json" /><div class="hint">Format: key=value, key=value</div></div>
+                        <div class="field-group"><label for="cloudTextFieldHintsInput">Transcript field hints</label><input id="cloudTextFieldHintsInput" type="text" placeholder="text, transcript, result" /><div class="hint">Comma-separated values</div></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="tabEditingPanel" class="settings-tab-panel hidden">
+                    <div class="field-group">
+                      <label>Selected-text editing</label>
+                      <label class="check-row"><input id="editingEnabledCheck" type="checkbox" /> Speak to type. Select text to edit.</label>
+                      <div class="hint">No selection = normal dictation. Select text first, then your spoken words become an edit command.</div>
+                    </div>
+
+                    <div id="editingProviderFields" class="section">
+                      <div class="section-label">Edit Transform Provider</div>
+                      <div class="field-group field-group--inline">
+                        <label for="editingProviderSelect">Provider</label>
+                        <select id="editingProviderSelect" class="hotkey-select-pill">
+                          <option value="rule-based">Basic Local Commands</option>
+                          <option value="openai-compatible">Local LLM / OpenAI-compatible</option>
+                        </select>
+                      </div>
+                      <div id="editingLlmFields">
+                        <div class="field-group">
+                          <label for="editingEndpointInput">Endpoint (chat completions)</label>
+                          <input id="editingEndpointInput" type="text" placeholder="http://localhost:11434/v1/chat/completions" />
+                        </div>
+                        <div class="field-group">
+                          <label for="editingModelInput">Model</label>
+                          <input id="editingModelInput" type="text" placeholder="gemini-2.5-flash or llama3.1" />
+                        </div>
+                        <div class="field-group">
+                          <label for="editingApiKeyInput">API key (remote endpoints only)</label>
+                          <input id="editingApiKeyInput" type="password" autocomplete="off" placeholder="Leave empty for local endpoints" />
+                        </div>
+                        <div id="editingCloudWarning" class="hint" style="display:none">
+                          Selected text and spoken edit commands are sent to the selected provider. Use a local endpoint for private content.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="saveToast" class="saved-indicator">Saved</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </main>
+
+        <!-- Footer status bar -->
+        <div class="main-footer">
+          <div class="footer-left">
+            <span id="footerStatus" class="status-msg">Ready</span>
+          </div>
+          <div class="footer-right">
+            <span id="footerProvider" class="provider-tag" style="display:none"></span>
+          </div>
+        </div>
+    </div>
+
+    <!-- ── Modals ── -->
+    <div id="apiKeyModal" class="modal-backdrop hidden">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="apiKeyTitle">
+        <div id="apiKeyTitle" class="modal-title">Enter API key</div>
+        <div class="password-row">
+          <input id="apiKeyInput" type="password" autocomplete="off" />
+          <button id="apiKeyPeekBtn" class="password-peek-btn" type="button" aria-label="Press and hold to show API key" title="Press and hold to show API key">&#128065;</button>
+        </div>
+        <div class="modal-actions">
+          <button id="apiKeyCancelBtn" class="modal-btn" type="button">Cancel</button>
+          <button id="apiKeySaveBtn" class="modal-btn primary" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="welcomeModal" class="wz-welcome hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+      <div class="wz-welcome-icon" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+      </div>
+      <div id="welcomeTitle" class="wz-welcome-title">Welcome to TapTalk</div>
+      <div class="wz-welcome-sub">Privacy-first dictation for macOS. All transcription happens on your Mac by default.</div>
+      <div class="wz-feature-list">
+        <div class="wz-feature-item">
+          <span class="wz-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
+          <span>Microphone access — required to record</span>
+        </div>
+        <div class="wz-feature-item">
+          <span class="wz-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg></span>
+          <span>Hotkey + permissions — Fn or a custom shortcut</span>
+        </div>
+        <div class="wz-feature-item">
+          <span class="wz-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+          <span>Transcription model — ~150 MB local download, or your cloud API key</span>
+        </div>
+      </div>
+      <div class="welcome-note">Takes about 3 minutes. Your progress is auto-saved — if macOS asks you to quit and reopen TapTalk while granting permissions, the wizard will resume exactly where you left off.</div>
+      <div class="welcome-actions">
+        <button id="welcomeGetStartedBtn" class="welcome-primary" type="button">Get started</button>
+        <button id="welcomeSkipBtn" class="welcome-secondary" type="button">Skip for now</button>
+      </div>
+    </div>
+
+    <div id="setupWizard" class="wz-layout hidden" role="dialog" aria-modal="true" aria-labelledby="wizardStepTitle">
+      <aside class="wz-sidebar">
+        <div class="wz-brand">
+          <div class="wz-brand-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+          </div>
+          <div class="wz-brand-text">
+            <div class="wz-brand-title">TapTalk</div>
+            <div class="wz-brand-sub">Setup</div>
+          </div>
+        </div>
+        <nav class="wz-stepper">
+          <div id="wizardStepChip1" class="wz-step-row active" data-step="1" role="button" tabindex="0">
+            <div class="wz-step-badge">1</div>
+            <div class="wz-step-text">
+              <span class="wz-step-label">Mode</span>
+              <span class="wz-step-sub">Local or cloud</span>
+            </div>
+          </div>
+          <div class="wz-step-connector" aria-hidden="true"></div>
+          <div id="wizardStepChip2" class="wz-step-row" data-step="2" role="button" tabindex="0">
+            <div class="wz-step-badge">2</div>
+            <div class="wz-step-text">
+              <span class="wz-step-label">AI Engine</span>
+              <span class="wz-step-sub">Transcription</span>
+            </div>
+          </div>
+          <div class="wz-step-connector" aria-hidden="true"></div>
+          <div id="wizardStepChip3" class="wz-step-row" data-step="3" role="button" tabindex="0">
+            <div class="wz-step-badge">3</div>
+            <div class="wz-step-text">
+              <span class="wz-step-label">Permissions</span>
+              <span class="wz-step-sub">macOS access</span>
+            </div>
+          </div>
+          <div class="wz-step-connector" aria-hidden="true"></div>
+          <div id="wizardStepChip4" class="wz-step-row" data-step="4" role="button" tabindex="0">
+            <div class="wz-step-badge">4</div>
+            <div class="wz-step-text">
+              <span class="wz-step-label">Preferences</span>
+              <span class="wz-step-sub">Language &amp; paste</span>
+            </div>
+          </div>
+        </nav>
+        <p class="wz-sidebar-note">Progress is auto-saved — if macOS asks you to quit and reopen TapTalk while granting permissions, the wizard resumes where you left off.</p>
+      </aside>
+
+      <div class="wz-main">
+        <header class="wz-step-header">
+          <div id="wizardStepLabel" class="wz-step-eyebrow">Step 1 of 4</div>
+          <div id="wizardStepTitle" class="wz-step-title">Choose Your Mode</div>
+          <div id="wizardStepSubtitle" class="wz-step-subtitle">Select how TapTalk should process your voice</div>
+        </header>
+
+        <div class="wizard-body">
+          <div id="wizardStepMode" class="wizard-step">
+            <div class="wizard-mode-cards">
+              <button id="wizardModeLocalBtn" class="wizard-mode-card" type="button">
+                <div class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--local" aria-hidden="true">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="wizard-mode-card-title">Local Mode</div>
+                <div class="wizard-mode-card-desc">Maximum privacy. All processing happens on your Mac.</div>
+                <div class="wizard-mode-card-recommended">Recommended</div>
+              </button>
+              <button id="wizardModeCloudBtn" class="wizard-mode-card" type="button">
+                <div class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--cloud" aria-hidden="true">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                </div>
+                <div class="wizard-mode-card-title">Cloud Mode</div>
+                <div class="wizard-mode-card-desc">Faster processing with powerful cloud AI models.</div>
+                <div class="wizard-mode-card-recommended" style="visibility:hidden">·</div>
+              </button>
+            </div>
+          </div>
+
+          <div id="wizardStepEngine" class="wizard-step hidden">
+            <div id="wizardLocalFields" class="wizard-grid">
+              <div class="field-group">
+                <label for="wizardEngineSelect">Engine</label>
+                <select id="wizardEngineSelect">
+                  <option value="whisper-cpp">whisper.cpp — Native (recommended, no Python)</option>
+                  <option value="faster-whisper">faster-whisper — Python</option>
+                </select>
+                <div class="hint">whisper.cpp runs natively with Metal GPU acceleration. faster-whisper needs Python — we install it for you if missing.</div>
+              </div>
+              <div class="field-group">
+                <label for="wizardLocalModelPresetSelect">Model size</label>
+                <select id="wizardLocalModelPresetSelect">
+                  <option value="fast">Fast — tiny (lowest quality, fastest)</option>
+                  <option value="balanced">Balanced — small (recommended)</option>
+                  <option value="quality">Quality — medium (slower)</option>
+                  <option value="best">Best — large-v3 (heavy)</option>
+                </select>
+                <div id="wizardLocalModelHint" class="hint">Recommended for most users: good speed and quality.</div>
+              </div>
+              <div class="wizard-step-desc">We check and install everything required automatically — nothing to configure by hand.</div>
+              <div id="wizardDepChecklist" class="wizard-dep-checklist">
+                <div class="wizard-dep-item wizard-cpp-only" id="wizardDepWhisperCpp"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">whisper.cpp engine</span><span class="wizard-dep-status">Waiting...</span></div>
+                <div class="wizard-dep-item wizard-fw-only" id="wizardDepPython"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">Python 3</span><span class="wizard-dep-status">Waiting...</span></div>
+                <div class="wizard-dep-item" id="wizardDepFfmpeg"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">ffmpeg</span><span class="wizard-dep-status">Waiting...</span></div>
+                <div class="wizard-dep-item wizard-fw-only" id="wizardDepWhisper"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">faster-whisper</span><span class="wizard-dep-status">Waiting...</span></div>
+                <div class="wizard-dep-item" id="wizardDepModel"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">Model</span><span class="wizard-dep-status">Waiting...</span></div>
+              </div>
+              <div id="wizardPrepareStatus" class="wizard-status" aria-live="polite">
+                <div id="wizardPrepareSpinner" class="wizard-spinner hidden"></div>
+                <span id="wizardPrepareText"></span>
+              </div>
+              <div class="wizard-machinery" hidden aria-hidden="true" style="display:none">
+                <input id="wizardPythonPathInput" type="text" />
+                <input id="wizardLocalModelInput" type="text" />
+                <input id="wizardWhisperCppGpuCheck" type="checkbox" checked />
+                <input id="wizardInstallPackageCheck" type="checkbox" />
+                <input id="wizardPrepareOnSaveCheck" type="checkbox" />
+                <button id="wizardPrepareLocalBtn" type="button">prepare</button>
+                <button id="wizardTestLocalBtn" type="button">test</button>
+              </div>
+            </div>
+            <div id="wizardCloudFields" class="wizard-grid hidden">
+              <div class="wizard-step-desc">Connect to a cloud speech-to-text service. You'll need an API key from your chosen provider.</div>
+              <div class="field-group"><label for="wizardCloudPresetSelect">Cloud service</label><select id="wizardCloudPresetSelect"></select></div>
+              <div class="field-group"><label for="wizardCloudApiKeyInput">API key</label><div class="password-row"><input id="wizardCloudApiKeyInput" type="password" autocomplete="off" placeholder="Paste API key" /><button id="wizardCloudApiKeyPeekBtn" class="password-peek-btn" type="button" aria-label="Press and hold to show API key" title="Press and hold to show API key">&#128065;</button></div></div>
+              <div class="field-group"><label for="wizardCloudModelInput">Model (optional)</label><input id="wizardCloudModelInput" type="text" placeholder="Use preset default" /></div>
+              <button id="wizardCloudAdvancedToggleBtn" class="secondary-btn" type="button">Show advanced options</button>
+              <div id="wizardCloudAdvancedFields" class="wizard-grid hidden">
+                <div class="field-group"><label for="wizardCloudUrlInput">URL</label><input id="wizardCloudUrlInput" type="text" placeholder="https://..." /></div>
+                <div class="field-group"><label for="wizardCloudAuthHeaderInput">Auth header</label><input id="wizardCloudAuthHeaderInput" type="text" placeholder="Authorization" /></div>
+                <div class="field-group"><label for="wizardCloudAuthValueInput">Auth value template</label><input id="wizardCloudAuthValueInput" type="text" placeholder="Bearer {{key}}" /></div>
+                <div class="field-group"><label for="wizardCloudBodyFormatSelect">Body format</label><select id="wizardCloudBodyFormatSelect"><option value="formdata">formdata</option><option value="binary">binary</option></select></div>
+                <div class="field-group"><label for="wizardCloudAudioFieldInput">Audio field name</label><input id="wizardCloudAudioFieldInput" type="text" placeholder="file" /></div>
+                <div class="field-group"><label for="wizardCloudQueryParamsInput">Query params</label><input id="wizardCloudQueryParamsInput" type="text" placeholder="model={{model}},language={{language}}" /><div class="hint">Format: key=value, key=value</div></div>
+                <div class="field-group"><label for="wizardCloudExtraFormFieldsInput">Extra form fields</label><input id="wizardCloudExtraFormFieldsInput" type="text" placeholder="include_ts=false" /><div class="hint">Format: key=value, key=value</div></div>
+                <div class="field-group"><label for="wizardCloudTextFieldHintsInput">Transcript field hints</label><input id="wizardCloudTextFieldHintsInput" type="text" placeholder="text, transcript, result" /><div class="hint">Comma-separated values</div></div>
+              </div>
+              <div id="wizardCloudStatus" class="wizard-status" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div id="wizardStepPermissions" class="wizard-step hidden">
+            <div class="wizard-step-desc">TapTalk needs macOS permissions to record audio and listen for the Fn key.</div>
+            <div id="wizardPermChecklist" class="wizard-dep-checklist">
+              <div class="wizard-dep-item" id="wizardPermMicrophone"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">Microphone</span><span class="wizard-dep-status">Required for recording</span><button id="wizardPermMicrophoneBtn" class="wizard-perm-btn" type="button">Grant Access</button></div>
+              <div class="wizard-dep-item" id="wizardPermAccessibility"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">Accessibility</span><span class="wizard-dep-status">Required for Fn key + auto-paste</span><button id="wizardPermAccessibilityBtn" class="wizard-perm-btn" type="button">Open Settings</button></div>
+              <div class="wizard-dep-item" id="wizardPermInputMonitoring"><span class="wizard-dep-icon pending">&#9679;</span><span class="wizard-dep-label">Input Monitoring</span><span class="wizard-dep-status">Required for Fn key</span><button id="wizardPermInputMonitoringBtn" class="wizard-perm-btn" type="button">Open Settings</button></div>
+            </div>
+            <button id="wizardPermRefreshBtn" class="secondary-btn" type="button">Refresh status</button>
+            <div id="wizardPermStatus" class="wizard-status" aria-live="polite"></div>
+            <div class="hint">Microphone is the only must-have. Accessibility is only needed if you use the Fn hotkey or auto-paste — you can grant it later in Settings.</div>
+          </div>
+
+          <div id="wizardStepPreferences" class="wizard-step hidden">
+            <div class="wizard-step-desc">Almost done — these are optional. The defaults work out of the box, so you can just hit Finish.</div>
+            <div class="field-group">
+              <label for="wizardLanguageSelect">Language</label>
+              <select id="wizardLanguageSelect"></select>
+              <label id="wizardLanguageIncludeEnglishRow" class="check-row"><input id="wizardLanguageIncludeEnglishCheck" type="checkbox" /> Include English</label>
+              <div class="hint">Pick your main dictation language. Leave on "Auto" if you mix languages.</div>
+            </div>
+            <label class="check-row"><input id="wizardAutopasteCheck" type="checkbox" /> Auto-paste into the active app after dictation</label>
+            <button id="wizardPrefsAdvancedToggleBtn" class="secondary-btn" type="button">Show advanced options</button>
+            <div id="wizardPrefsAdvancedFields" class="wizard-grid hidden">
+              <div class="field-group">
+                <label for="wizardSecretBackendSelect">API key storage</label>
+                <select id="wizardSecretBackendSelect"><option value="settings">settings.json (no system prompts)</option><option value="safeStorage">macOS Keychain (encrypted, may ask for password)</option></select>
+                <div class="hint">Only relevant for cloud / remote edit keys. Keychain keeps them out of config files; macOS may ask for your password.</div>
+              </div>
+              <div class="field-group">
+                <label>Selected-text editing</label>
+                <label class="check-row"><input id="wizardEditingEnabledCheck" type="checkbox" /> Enable voice editing for selected text</label>
+                <div class="hint">Select text, press the hotkey, speak an edit command. Works out of the box with basic local commands — no setup needed.</div>
+              </div>
+              <div id="wizardEditingProviderFields" class="section">
+                <div class="section-label">Edit Transform Provider</div>
+                <div class="field-group"><label for="wizardEditingProviderSelect">Provider</label><select id="wizardEditingProviderSelect"><option value="rule-based">Basic Local Commands (no setup)</option><option value="openai-compatible">Local LLM / OpenAI-compatible</option></select></div>
+                <div id="wizardEditingLlmFields">
+                  <div class="field-group"><label for="wizardEditingEndpointInput">Endpoint (chat completions)</label><input id="wizardEditingEndpointInput" type="text" placeholder="http://localhost:11434/v1/chat/completions" /></div>
+                  <div class="field-group"><label for="wizardEditingModelInput">Model</label><input id="wizardEditingModelInput" type="text" placeholder="gemini-2.5-flash or llama3.1" /></div>
+                  <div class="field-group"><label for="wizardEditingApiKeyInput">API key (remote endpoints only)</label><input id="wizardEditingApiKeyInput" type="password" autocomplete="off" placeholder="Leave empty for local endpoints" /></div>
+                  <div id="wizardEditingCloudWarning" class="hint" style="display:none">Selected text and spoken edit commands are sent to the selected provider. Use a local endpoint for private content.</div>
+                  <div id="wizardEditingStatus" class="wizard-status" aria-live="polite"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="wz-footer">
+          <div class="wz-footer-left">
+            <button id="wizardSkipBtn" class="modal-btn" type="button">Skip for now</button>
+            <button id="wizardBackBtn" class="modal-btn hidden" type="button">← Back</button>
+          </div>
+          <div class="wz-dots" aria-hidden="true">
+            <span class="wz-dot active"></span>
+            <span class="wz-dot"></span>
+            <span class="wz-dot"></span>
+            <span class="wz-dot"></span>
+          </div>
+          <div class="wz-footer-right">
+            <button id="wizardNextBtn" class="modal-btn primary" type="button">Continue →</button>
+            <button id="wizardSaveBtn" class="modal-btn primary hidden" type="button">Finish ✓</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <script type="module" src="renderer/main.js"></script>
+  </body>
+</html>
