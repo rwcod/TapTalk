@@ -1,0 +1,44 @@
+appId: com.taptalk.app
+productName: TapTalk
+artifactName: "${productName}-${version}-macos-${arch}.${ext}"
+mac:
+  icon: build/icon.icns
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [arm64]
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+dmg:
+  icon: build/icon.icns
+afterSign: build/afterSign.js
+asar: true
+asarUnpack:
+  - "node_modules/keyspy/runtime/**"
+  - "node_modules/ffmpeg-static/**"
+  - "scripts/**"
+files:
+  - "dist/**/*"
+  - "!dist/mac-arm64${/*}"
+  - "!dist/mac${/*}"
+  - "!dist/*.dmg"
+  - "!dist/*.zip"
+  - "!dist/*.blockmap"
+  - "!dist/builder-*"
+  - "!dist/native/**"
+  - "src/electron/**/*"
+  - "scripts/**/*"
+  - "!**/*.test.*"
+  - "!**/*.map"
+extraResources:
+  - from: "dist/native/PasteHelper"
+    to: "native/PasteHelper"
+  - from: "dist/native/whisper-cpp"
+    to: "native/whisper-cpp"
+  - from: "dist/native/ggml-metal.metal"
+    to: "native/ggml-metal.metal"
+  - from: "dist/native/default.metallib"
+    to: "native/default.metallib"
+extraMetadata:
+  main: "dist/electron/main.js"

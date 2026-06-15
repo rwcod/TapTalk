@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Build artifacts
+dist/
+.cache/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+*.dmg
+*.zip
+*.blockmap
+*.tgz
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Local tooling
+.claude/
+.vscode/
+.idea/
+
+# Local temporary files
+*.swp
+*.swo
+*~
+*.tmp
+*.temp
+*.pid
+*.seed
+*.orig
+
+# OS files
+.DS_Store
+**/.DS_Store
+
+# Local planning/generated helper files
+CODE_PLAN_TODO.md
+settings.js
+ADR-*.md
+REFRACTOR_BASELINE.md
+AGENTS.md
+CONTRIBUTING.md
+SECURITY.md
+.github/pull_request_template.md
+
+# Design reference assets (too large for repo)
+docs/design_handoff/

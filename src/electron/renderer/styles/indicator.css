@@ -1,0 +1,242 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Floating indicator pill — unified Aurora identity, theme-aware (dark + light).
+   Every phase shares ONE skeleton:  [ status dot ] [ waveform ] [ label ] [ timer ]
+   Only the accent (--t-r/g/b), the waveform rhythm, and the dot pulse differ.
+   Phase changes morph the accent colour smoothly (animatable @property channels)
+   while a parallax aurora cloud drifts behind the content.
+   Driven by indicator.js: #pill[data-phase], .pill.light, .bar scaleY, #text, #timer.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Animatable accent channels — Chromium (Electron) supports @property, so the
+   tint can transition smoothly between phases instead of snapping. */
+@property --t-r { syntax: "<number>"; inherits: true; initial-value: 52; }
+@property --t-g { syntax: "<number>"; inherits: true; initial-value: 211; }
+@property --t-b { syntax: "<number>"; inherits: true; initial-value: 153; }
+
+* { box-sizing: border-box; margin: 0; }
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: transparent;
+  font-family: "Inter Variable", -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Pill sits near the bottom of the transparent window so the drop-shadow
+     has room to render below it without being clipped by the window edge. */
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 28px;
+}
+
+/* ── Base pill ── */
+.pill {
+  /* default emerald accent (idle) */
+  --t-r: 52; --t-g: 211; --t-b: 153;
+  --tint: var(--t-r), var(--t-g), var(--t-b);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 44px;
+  border-radius: 99px;
+  overflow: hidden;                         /* keeps the aurora cloud clipped to the pill */
+  background: rgba(16, 18, 24, 0.72);
+  -webkit-backdrop-filter: blur(30px) saturate(1.7);
+  backdrop-filter: blur(30px) saturate(1.7);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.48),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 20px rgba(var(--t-r), var(--t-g), var(--t-b), 0.28);
+  white-space: nowrap;
+  transition:
+    --t-r 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    --t-g 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    --t-b 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Phase accents (only the colour + tinted glass change per phase) */
+.pill[data-phase="recording"]    { --t-r: 251; --t-g: 94;  --t-b: 126; background: rgba(22, 10, 13, 0.78); }
+.pill[data-phase="transcribing"] { --t-r: 251; --t-g: 191; --t-b: 36;  background: rgba(22, 16, 6, 0.78); }
+.pill[data-phase="editing"]      { --t-r: 167; --t-g: 139; --t-b: 250; background: rgba(15, 11, 24, 0.78); }
+.pill[data-phase="thinking"]     { --t-r: 167; --t-g: 139; --t-b: 250; background: rgba(15, 11, 24, 0.78); }
+
+/* Content sits above the aurora */
+.pill > :not(.pill-aurora) { position: relative; z-index: 1; }
+
+/* ── Parallax aurora cloud ── */
+.pill-aurora {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.pill-aurora::before,
+.pill-aurora::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  /* Elongated ellipses — tall axis fits within the 44px pill so overflow:hidden
+     fades the blur naturally instead of hard-clipping a circular blob. */
+  border-radius: 99px;
+  filter: blur(14px);
+  will-change: transform;
+}
+.pill-aurora::before {
+  /* 20px height + 14px blur: blur's visible edge stays within the 44px pill. */
+  width: 180px; height: 20px;
+  background: radial-gradient(ellipse, rgba(var(--t-r), var(--t-g), var(--t-b), 0.62) 0%, transparent 72%);
+  animation: aurora-drift-a 7.5s ease-in-out infinite;
+}
+.pill-aurora::after {
+  /* 18px height: same logic — blur fades to ~0 exactly at the pill top/bottom. */
+  width: 130px; height: 18px;
+  background: radial-gradient(ellipse, rgba(var(--t-r), var(--t-g), var(--t-b), 0.46) 0%, transparent 74%);
+  animation: aurora-drift-b 5.5s ease-in-out infinite;
+}
+@keyframes aurora-drift-a {
+  0%   { transform: translate(-110px, -50%) scale(1);    }
+  50%  { transform: translate(30px,   -50%) scale(1.12); }
+  100% { transform: translate(-110px, -50%) scale(1);    }
+}
+@keyframes aurora-drift-b {
+  0%   { transform: translate(40px,  -50%) scale(1.08); }
+  50%  { transform: translate(-80px, -50%) scale(0.92); }
+  100% { transform: translate(40px,  -50%) scale(1.08); }
+}
+
+/* ── Entrance (replayed by indicator.js on each show) ── */
+@keyframes pill-in {
+  from { opacity: 0; transform: translateY(7px) scale(0.90); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+.pill--in { animation: pill-in 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* Brief ripple/bounce when the phase changes (toggled by indicator.js) */
+@keyframes pill-phase-shift {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(1.05); }
+  100% { transform: scale(1);    }
+}
+.pill--shift { animation: pill-phase-shift 460ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ── Unified leading status dot (present in every active phase) ── */
+.pill-dot-status {
+  width: 9px; height: 9px; border-radius: 50%;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 40% 35%,
+    rgba(255, 255, 255, 0.95),
+    rgb(var(--t-r), var(--t-g), var(--t-b)) 72%,
+    rgba(var(--t-r), var(--t-g), var(--t-b), 0.7));
+  box-shadow: 0 0 0 0 rgba(var(--t-r), var(--t-g), var(--t-b), 0.6);
+  animation: pill-dot-pulse 1.8s ease-out infinite;
+}
+.pill[data-phase="recording"] .pill-dot-status { animation-duration: 1.4s; }
+@keyframes pill-dot-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--t-r), var(--t-g), var(--t-b), 0.55); }
+  70%  { box-shadow: 0 0 0 7px rgba(var(--t-r), var(--t-g), var(--t-b), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--t-r), var(--t-g), var(--t-b), 0); }
+}
+
+/* ── Unified waveform — same 5 bars in every phase, accent-tinted ── */
+.pill-bars { display: flex; align-items: center; gap: 2.5px; height: 19px; flex-shrink: 0; }
+.bar {
+  width: 3px; height: 100%;
+  border-radius: 99px;
+  transform-origin: center;
+  transform: scaleY(0.18);
+  background: linear-gradient(180deg,
+    rgba(var(--t-r), var(--t-g), var(--t-b), 1) 0%,
+    rgb(var(--t-r), var(--t-g), var(--t-b)) 55%,
+    rgba(var(--t-r), var(--t-g), var(--t-b), 0.78) 100%);
+  transition: transform 70ms linear, opacity 70ms linear;
+}
+
+/* Recording: bars are driven live by indicator.js (inline transform) */
+
+/* Transcribing: fast shimmer wave */
+.pill[data-phase="transcribing"] .bar {
+  animation: pill-wave 1.1s ease-in-out infinite;
+  transition: none;
+}
+.pill[data-phase="transcribing"] .bar:nth-child(1) { animation-delay: -0.9s; }
+.pill[data-phase="transcribing"] .bar:nth-child(2) { animation-delay: -0.6s; }
+.pill[data-phase="transcribing"] .bar:nth-child(3) { animation-delay: -0.3s; }
+.pill[data-phase="transcribing"] .bar:nth-child(4) { animation-delay: -0.5s; }
+.pill[data-phase="transcribing"] .bar:nth-child(5) { animation-delay: -0.8s; }
+@keyframes pill-wave {
+  0%, 100% { transform: scaleY(0.25); opacity: 0.6; }
+  50%      { transform: scaleY(1);    opacity: 1; }
+}
+
+/* Editing / thinking: slow directional "scan" sweep (left → right) */
+.pill[data-phase="editing"] .bar,
+.pill[data-phase="thinking"] .bar {
+  animation: pill-scan 1.6s ease-in-out infinite;
+  transition: none;
+}
+.pill[data-phase="editing"] .bar:nth-child(1), .pill[data-phase="thinking"] .bar:nth-child(1) { animation-delay: 0s;    }
+.pill[data-phase="editing"] .bar:nth-child(2), .pill[data-phase="thinking"] .bar:nth-child(2) { animation-delay: 0.12s; }
+.pill[data-phase="editing"] .bar:nth-child(3), .pill[data-phase="thinking"] .bar:nth-child(3) { animation-delay: 0.24s; }
+.pill[data-phase="editing"] .bar:nth-child(4), .pill[data-phase="thinking"] .bar:nth-child(4) { animation-delay: 0.36s; }
+.pill[data-phase="editing"] .bar:nth-child(5), .pill[data-phase="thinking"] .bar:nth-child(5) { animation-delay: 0.48s; }
+@keyframes pill-scan {
+  0%, 100% { transform: scaleY(0.30); opacity: 0.55; }
+  45%      { transform: scaleY(0.92); opacity: 1; }
+}
+
+/* ── Label ── */
+.pill-text {
+  font-size: 13px; font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+  letter-spacing: -0.1px;
+}
+
+/* ── Timer (right-aligned, shown in every active phase) ── */
+.pill-timer {
+  margin-left: auto;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255, 255, 255, 0.80);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px; min-width: 34px; text-align: right;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   LIGHT THEME (.pill.light) — follows the app's effective theme.
+   ─────────────────────────────────────────────────────────────────────────── */
+.pill.light {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 6px 18px rgba(15, 23, 42, 0.18),
+    inset 0 0 0 0.5px rgba(15, 23, 42, 0.10),
+    0 0 18px rgba(var(--t-r), var(--t-g), var(--t-b), 0.22);
+}
+.pill.light[data-phase="recording"]    { background: rgba(255, 244, 246, 0.92); }
+.pill.light[data-phase="transcribing"] { background: rgba(255, 250, 238, 0.92); }
+.pill.light[data-phase="editing"]      { background: rgba(247, 244, 255, 0.92); }
+.pill.light[data-phase="thinking"]     { background: rgba(247, 244, 255, 0.92); }
+.pill.light .pill-text  { color: rgba(15, 23, 42, 0.90); }
+.pill.light .pill-timer { color: rgba(15, 23, 42, 0.56); }
+.pill.light .pill-aurora { opacity: 0.6; }
+/* In light mode darken the waveform/dot a touch so accents stay legible on white */
+.pill.light .bar {
+  background: linear-gradient(180deg,
+    rgb(var(--t-r), var(--t-g), var(--t-b)) 0%,
+    color-mix(in srgb, rgb(var(--t-r), var(--t-g), var(--t-b)) 82%, black) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill--in,
+  .pill--shift,
+  .pill-aurora::before,
+  .pill-aurora::after,
+  .pill-dot-status,
+  .pill[data-phase="transcribing"] .bar,
+  .pill[data-phase="editing"] .bar,
+  .pill[data-phase="thinking"] .bar { animation: none; }
+}
