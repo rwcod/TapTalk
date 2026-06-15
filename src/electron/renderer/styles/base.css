@@ -1,0 +1,149 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Base — fonts, reset, ambient aurora background, scrollbars.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/Inter-roman.var.woff2") format("woff2");
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+.hidden { display: none !important; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  background: var(--bg-base);
+  color-scheme: light dark;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  user-select: none;
+  overflow: hidden;
+}
+
+body { position: relative; }
+
+/* ── Ambient aurora background ──────────────────────────────────────────────
+   Three large blurred blobs drifting slowly behind the whole app. GPU-only
+   (transform/opacity). The frosted surfaces above blur this into soft light. */
+
+.aurora {
+  position: fixed;
+  inset: -25%;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  filter: saturate(1.25);
+}
+
+.aurora__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+.aurora__blob--1 {
+  width: 46vw; height: 46vw;
+  top: -8%; left: -6%;
+  background: radial-gradient(circle at 50% 50%, var(--bg-aurora-1), transparent 68%);
+  animation: aurora-drift-1 var(--dur-aurora) ease-in-out infinite;
+}
+
+.aurora__blob--2 {
+  width: 52vw; height: 52vw;
+  bottom: -16%; right: -10%;
+  background: radial-gradient(circle at 50% 50%, var(--bg-aurora-2), transparent 68%);
+  animation: aurora-drift-2 calc(var(--dur-aurora) * 1.25) ease-in-out infinite;
+}
+
+.aurora__blob--3 {
+  width: 38vw; height: 38vw;
+  top: 28%; left: 38%;
+  opacity: 0.32;
+  background: radial-gradient(circle at 50% 50%, var(--bg-aurora-3), transparent 70%);
+  animation: aurora-drift-3 calc(var(--dur-aurora) * 0.85) ease-in-out infinite;
+}
+
+[data-theme="light"] .aurora__blob,
+.aurora.is-light .aurora__blob { mix-blend-mode: multiply; opacity: 0.42; }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .aurora__blob {
+    mix-blend-mode: multiply;
+    opacity: 0.42;
+  }
+}
+
+@keyframes aurora-drift-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(8vw, 6vh, 0) scale(1.15); }
+  66%      { transform: translate3d(-4vw, 10vh, 0) scale(0.95); }
+}
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-10vw, -8vh, 0) scale(1.18); }
+}
+@keyframes aurora-drift-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.32; }
+  50%      { transform: translate3d(6vw, -6vh, 0) scale(1.12); opacity: 0.20; }
+}
+
+/* ── Fine grain overlay for premium texture ── */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora__blob { animation: none !important; }
+}
+
+/* ── Custom thin glass scrollbars ── */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.20); background-clip: padding-box; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.16); background-clip: padding-box; }
+
+/* ── Legacy primitives still referenced ── */
+.titlebar {
+  height: 52px;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Shared keyframes ── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
