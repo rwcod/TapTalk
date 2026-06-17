@@ -19,8 +19,11 @@ import {
   wizardLocalModelInput,
   wizardLocalModelPresetSelect,
   wizardModeLocalBtn,
-  wizardWhisperCppGpuCheck
+  wizardWhisperCppGpuCheck,
+  revealVaultBtn
 } from "./dom.js";
+import { loadVault } from "./vault-view.js";
+import { mountTaptalkGlyphs } from "./taptalk-glyph.js";
 import { state } from "./state.js";
 import {
   cloudLanguageToSetting,
@@ -395,11 +398,22 @@ if (sidebarNav) {
     for (const view of document.querySelectorAll(".view")) {
       view.classList.toggle("active", view.id === `view${target.charAt(0).toUpperCase()}${target.slice(1)}`);
     }
+    if (target === "vault") {
+      void loadVault();
+    }
     if (window.tapTalk?.resizeForView) {
       void window.tapTalk.resizeForView(target);
     }
   });
 }
+
+if (revealVaultBtn) {
+  revealVaultBtn.addEventListener("click", () => {
+    void window.tapTalk?.revealVault?.();
+  });
+}
+
+mountTaptalkGlyphs();
 
 void initializeRenderer({
   openSetupWizard,

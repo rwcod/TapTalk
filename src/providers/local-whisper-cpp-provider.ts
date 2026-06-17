@@ -33,7 +33,10 @@ interface WhisperCppJsonResult {
 export class LocalWhisperCppProvider implements TranscriptionProvider {
   name = "whisper-cpp";
 
-  constructor(private readonly config: LocalWhisperCppConfig) {}
+  constructor(
+    private readonly config: LocalWhisperCppConfig,
+    private readonly initialPrompt = ""
+  ) {}
 
   async transcribe(audioPath: string): Promise<string> {
     if (!audioPath || audioPath.trim().length === 0) {
@@ -65,6 +68,10 @@ export class LocalWhisperCppProvider implements TranscriptionProvider {
       ];
 
       args.push("-l", this.config.language?.trim() || "auto");
+
+      if (this.initialPrompt.trim()) {
+        args.push("--prompt", this.initialPrompt.trim());
+      }
 
       if (!this.config.useGpu) {
         args.push("-ng"); // no gpu

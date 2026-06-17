@@ -28,7 +28,8 @@ test("buildEditMessages returns a system + user pair", () => {
   assert.match(messages[1].content, /abc/);
 });
 
-test("system prompt instructs to return only the transformed text", () => {
-  assert.match(EDIT_SYSTEM_PROMPT, /Return only the transformed text\./);
-  assert.match(EDIT_SYSTEM_PROMPT, /Do not explain\./);
+test("system prompt makes the command primary and allows full rewrites", () => {
+  assert.match(EDIT_SYSTEM_PROMPT, /Return only the replacement text\./);
+  assert.match(EDIT_SYSTEM_PROMPT, /command is the primary instruction/i);
+  assert.match(EDIT_SYSTEM_PROMPT, /rewriting the selection completely/i);
 });

@@ -32,6 +32,9 @@ import {
   PermissionsStatus
 } from "./ipc/contracts";
 import { setSafeStorageProvider } from "../settings/secret-store";
+import { getVaultDir } from "../runtime/vault";
+import { CaptureDeps, runCapture } from "./main-capture";
+import { mkdirSync } from "node:fs";
 import { readSettings, updateSettings } from "../settings";
 import {
   appendAndSaveTranscript,
@@ -39,7 +42,7 @@ import {
   clearTranscriptHistory,
   readTranscriptHistory
 } from "../runtime/transcript-history";
-import { Settings } from "../core/types";
+import { DEFAULT_SETTINGS, Settings } from "../core/types";
 import {
   resolveAssetPath,
   resolveKeyspyServerPath,
@@ -52,8 +55,7 @@ import {
 } from "./main-security";
 import {
   createTrayIconFromAppIcon,
-  loadAppIcon,
-  loadTemplateIcon
+  loadAppIcon
 } from "./main-tray";
 import { requestQuit as requestQuitFlow } from "./main-lifecycle";
 import {
@@ -131,6 +133,15 @@ let fallbackHotkey = "not registered";
 let recordingMode: RecordingControlMode = "none";
 let indicatorBars: number[] = Array.from({ length: INDICATOR_BAR_COUNT }, () => 0);
 let statusController: MainStatusController;
+
+const captureDeps: CaptureDeps = {
+  isIdle: () => status.phase === "idle",
+  getPasteHelperPath: () => resolvePasteHelperPath(),
+  getEditingConfig: () => (settingsCache ?? DEFAULT_SETTINGS).editing,
+  flashPill: (label) => statusController.flashIndicator(label),
+  toErrorMessage,
+  runSerialized
+};
 let hotkeyRecoveryTimer: NodeJS.Timeout | null = null;
 
 function requestHotkeyRecovery(reason: string): void {
@@ -160,9 +171,9 @@ const hotkeyManager = new FnHotkeyManager({
   startWithMode: (mode) => startDictationWithMode(mode),
   stopAndResetMode: () => stopDictationAndResetMode(),
   switchHoldToToggleMode,
-  requestListenerReload: (reason) => {
-    requestHotkeyRecovery(reason);
-  }
+  triggerCapture: () => runCapture(captureDeps),
+  triggerCancel: () => void runSerialized(() => dictationController.cancelDictation()),
+  requestListenerReload: (reason) => requestHotkeyRecovery(reason)
 });
 
 const dictationController = createDictationController({
@@ -212,10 +223,6 @@ function loadAppIconFromAssets(): Electron.NativeImage | null {
   return loadAppIcon(resolveAssetPath);
 }
 
-function loadTemplateIconFromAssets(fileName: string): Electron.NativeImage | null {
-  return loadTemplateIcon(fileName, resolveAssetPath);
-}
-
 function updateIndicatorOverlay(): void {
   statusController.updateIndicatorOverlay();
 }
@@ -254,6 +261,11 @@ statusController = createMainStatusController({
   positionIndicatorWindow,
   onPrimaryAction: runPrimaryDictationAction,
   onShowWindow: showWindow,
+  onRevealVault: () => {
+    const dir = getVaultDir();
+    mkdirSync(dir, { recursive: true });
+    void shell.openPath(dir);
+  },
   onRequestQuit: requestQuit,
   onIndicatorRecoveryNeeded: recreateIndicatorWindow
 });
@@ -540,6 +552,7 @@ function registerIpc(): void {
       const sizes: Record<string, { width: number; height: number }> = {
         dashboard: { width: 744, height: 568 },
         history: { width: 744, height: 568 },
+        vault: { width: 880, height: 600 },
         settings: { width: 792, height: 632 },
         wizard: { width: 820, height: 600 }
       };
@@ -598,7 +611,7 @@ async function handleAppReady(): Promise<void> {
   await prepareSharedProcessUi({
     trayIdleAlpha: TRAY_IDLE_ALPHA,
     loadAppIconFromAssets,
-    loadTemplateIconFromAssets,
+    resolveAssetPath,
     createTrayIconFromAppIcon,
     setAppIcon: (next) => { appIcon = next; },
     setTrayIdleIcon: (next) => { trayIdleIcon = next; },

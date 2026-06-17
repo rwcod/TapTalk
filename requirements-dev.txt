@@ -1,0 +1,2 @@
+# Maintainer tooling only (not required for npm install / CI).
+pillow>=10.0.0

@@ -1,4 +1,5 @@
 import { DictationSessionManager, DictationStopResult } from "../runtime/dictation-session";
+import { organizeInbox } from "../runtime/vault-tag";
 import { Settings } from "../core/types";
 import { DictationStatusPayload } from "./ipc/contracts";
 import { RecordingControlMode } from "./main-hotkeys";
@@ -32,6 +33,7 @@ export interface DictationController {
   stopDictation(): Promise<DictationStatusPayload>;
   startDictationWithMode(mode: RecordingControlMode): Promise<DictationStatusPayload>;
   stopDictationAndResetMode(): Promise<DictationStatusPayload>;
+  cancelDictation(): Promise<DictationStatusPayload>;
 }
 
 function recordingModeSuffix(mode: RecordingControlMode): string {
@@ -103,6 +105,27 @@ export function createDictationController(deps: DictationControllerDeps): Dictat
     deps.setRecordingMode("none");
     deps.clearHoldReleasePendingStop();
     return next;
+  }
+
+  async function cancelDictation(): Promise<DictationStatusPayload> {
+    const current = deps.getStatus();
+    if (current.phase !== "recording" && current.phase !== "starting") {
+      return current;
+    }
+    deps.resetIndicatorBars();
+    try {
+      await deps.dictation.cancel();
+    } catch {
+      // discarding anyway
+    }
+    deps.setRecordingMode("none");
+    deps.clearHoldReleasePendingStop();
+    return deps.setStatus({
+      phase: "idle",
+      dictationMode: "dictation",
+      message: "Canceled",
+      error: undefined
+    });
   }
 
   async function startDictation(): Promise<DictationStatusPayload> {
@@ -262,6 +285,8 @@ export function createDictationController(deps: DictationControllerDeps): Dictat
   }
 
   async function loadRecentTranscriptsAtStartup(): Promise<void> {
+    // Reconcile any tagged notes still in the inbox into their tag folders.
+    void organizeInbox().catch(() => undefined);
     try {
       const recentTranscripts = await deps.readTranscriptHistory();
       const current = deps.getStatus();
@@ -281,6 +306,7 @@ export function createDictationController(deps: DictationControllerDeps): Dictat
     startDictation,
     stopDictation,
     startDictationWithMode,
-    stopDictationAndResetMode
+    stopDictationAndResetMode,
+    cancelDictation
   };
 }

@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -12,6 +12,8 @@ import { createProvider, TranscriptionProvider } from "../providers";
 import { RecordingSession, startRecording } from "./recording";
 import { readSettings } from "../settings";
 import { normalizeTranscript } from "./text-normalization";
+import { buildInitialPrompt, loadDictionary, Replacement } from "./dictionary";
+import { retrieveVaultContext } from "./vault-retrieval";
 import {
   EditProviderNotConfiguredError,
   isSelectedTextEditingEnabled,
@@ -45,6 +47,7 @@ export interface DictationStopResult {
 interface ActiveSession {
   settings: Settings;
   provider: TranscriptionProvider;
+  replacements: Replacement[];
   targetApp?: FrontmostApp;
   targetAppPromise?: Promise<FrontmostApp | null>;
   tempDir: string;
@@ -58,6 +61,10 @@ interface DictationSessionHooks {
   getPasteHelperPath?: () => string | null;
   onThinking?: () => void;
 }
+
+// A valid WAV with even a fraction of a second of speech is comfortably larger
+// than this; below it means an empty/failed/too-short capture.
+const MIN_AUDIO_BYTES = 1024;
 
 async function createTempAudioPath(): Promise<{ dir: string; file: string }> {
   const dir = await mkdtemp(path.join(tmpdir(), "taptalk-audio-"));
@@ -140,11 +147,13 @@ export class DictationSessionManager {
       const recording = await startRecording(settings.recording.commandTemplate, file, {
         onAudioLevel: this.hooks.onAudioLevel
       });
-      const provider = createProvider(settings);
+      const dictionary = await loadDictionary();
+      const provider = createProvider(settings, buildInitialPrompt(dictionary.terms));
 
       this.active = {
         settings,
         provider,
+        replacements: dictionary.replacements,
         targetAppPromise,
         tempDir: dir,
         recording,
@@ -176,8 +185,25 @@ export class DictationSessionManager {
       }
 
       await session.recording.stop();
-      let text = await session.provider.transcribe(session.recording.outputPath);
-      text = normalizeTranscript(text);
+
+      // A too-short or failed capture leaves no / an empty WAV. Don't hand the
+      // transcriber a missing file (whisper.cpp dumps its usage text); treat it
+      // as "nothing recorded" so the empty-text paths below handle it cleanly.
+      let audioBytes = 0;
+      try {
+        audioBytes = (await stat(session.recording.outputPath)).size;
+      } catch {
+        audioBytes = 0;
+      }
+      let text = "";
+      if (audioBytes < MIN_AUDIO_BYTES) {
+        console.log(`[taptalk:dictation] no audio captured (${audioBytes} bytes) — skipping transcription`);
+      } else {
+        text = normalizeTranscript(
+          await session.provider.transcribe(session.recording.outputPath),
+          session.replacements
+        );
+      }
 
       const editing = session.selectedText && session.selectedText.trim().length > 0;
       if (editing) {
@@ -256,7 +282,8 @@ export class DictationSessionManager {
           appName: targetApp?.name,
           contentType: "unknown"
         },
-        session.settings.editing
+        session.settings.editing,
+        { retrieveContext: (cmd, sel) => retrieveVaultContext(cmd, sel, session.settings.editing) }
       );
 
       try {

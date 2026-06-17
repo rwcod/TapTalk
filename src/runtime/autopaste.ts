@@ -174,6 +174,28 @@ export async function getFrontmostApp(): Promise<FrontmostApp | null> {
   }
 }
 
+/**
+ * Frontmost app name via `lsappinfo` — unlike the System Events script above it
+ * needs no Automation permission, so it works for capture even when Automation
+ * was never granted. Name only (no pid); use getFrontmostApp when you need pid.
+ */
+export async function getFrontmostAppName(): Promise<string | null> {
+  if (process.platform !== "darwin") {
+    return null;
+  }
+  try {
+    const front = (await runCommand("lsappinfo", ["front"], { timeoutMs: 1500 })).stdout.trim();
+    if (!front) {
+      return null;
+    }
+    const info = await runCommand("lsappinfo", ["info", "-only", "name", front], { timeoutMs: 1500 });
+    const match = info.stdout.trim().match(/=\s*"?([^"]+?)"?\s*$/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function autoPasteText(text: string, options: AutoPasteOptions = {}): Promise<void> {
   const cleaned = text.trim();
   if (cleaned.length === 0) {

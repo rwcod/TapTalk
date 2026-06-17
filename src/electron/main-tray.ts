@@ -1,8 +1,10 @@
 import { Menu, nativeImage } from "electron";
+import { existsSync, readFileSync } from "node:fs";
 import { DictationStatusPayload } from "./ipc/contracts";
 
 const APP_ICON_FILE = "icon.png";
 const TRAY_ICON_SIZE = 16;
+const TRAY_IDLE_ALPHA = 0.72;
 
 function clamp01(value: number): number {
   if (Number.isNaN(value)) {
@@ -49,6 +51,68 @@ function applyAlpha(image: Electron.NativeImage, alpha: number): Electron.Native
   return next;
 }
 
+function markTemplate(image: Electron.NativeImage): Electron.NativeImage {
+  if (process.platform === "darwin") {
+    image.setTemplateImage(true);
+  }
+
+  return image;
+}
+
+export function loadTrayTemplateIcons(
+  resolveAssetPath: (fileName: string) => string | null
+): { idle: Electron.NativeImage | null; active: Electron.NativeImage | null } {
+  const useRetina = process.platform === "darwin";
+  const idleName = useRetina ? "tray-idleTemplate@2x.png" : "tray-idleTemplate.png";
+  const activeName = useRetina ? "tray-activeTemplate@2x.png" : "tray-activeTemplate.png";
+
+  return {
+    idle: loadTemplateIcon(idleName, resolveAssetPath),
+    active: loadTemplateIcon(activeName, resolveAssetPath)
+  };
+}
+
+/** Bitmap fallback when tray PNG assets are missing (e.g. dev misconfiguration). */
+function createEmergencyTrayIcon(isActive: boolean): Electron.NativeImage {
+  const size = 18;
+  const bitmap = Buffer.alloc(size * size * 4);
+  const cx = 8.5;
+  const cy = 8.5;
+  const radius = 5.5;
+  const peakAlpha = isActive ? 255 : Math.round(255 * TRAY_IDLE_ALPHA);
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const idx = (y * size + x) * 4;
+      const dist = Math.hypot(x - cx, y - cy);
+      const alpha =
+        dist <= radius
+          ? Math.round(peakAlpha * clamp01(1 - (dist - radius + 1)))
+          : 0;
+      bitmap[idx] = 0;
+      bitmap[idx + 1] = 0;
+      bitmap[idx + 2] = 0;
+      bitmap[idx + 3] = alpha;
+    }
+  }
+
+  return markTemplate(nativeImage.createFromBitmap(bitmap, { width: size, height: size }));
+}
+
+export function createTrayIdleIcon(
+  resolveAssetPath: (fileName: string) => string | null
+): Electron.NativeImage {
+  const loaded = loadTrayTemplateIcons(resolveAssetPath).idle;
+  return loaded ?? createEmergencyTrayIcon(false);
+}
+
+export function createTrayActiveIcon(
+  resolveAssetPath: (fileName: string) => string | null
+): Electron.NativeImage {
+  const loaded = loadTrayTemplateIcons(resolveAssetPath).active;
+  return loaded ?? createEmergencyTrayIcon(true);
+}
+
 export function loadAssetImage(
   fileName: string,
   resolveAssetPath: (fileName: string) => string | null
@@ -59,7 +123,11 @@ export function loadAssetImage(
     return null;
   }
 
-  const image = nativeImage.createFromPath(iconPath);
+  let image = nativeImage.createFromPath(iconPath);
+  if (image.isEmpty() && existsSync(iconPath)) {
+    image = nativeImage.createFromBuffer(readFileSync(iconPath));
+  }
+
   if (image.isEmpty()) {
     return null;
   }
@@ -76,11 +144,7 @@ export function loadTemplateIcon(
     return null;
   }
 
-  if (process.platform === "darwin") {
-    image.setTemplateImage(true);
-  }
-
-  return image;
+  return markTemplate(image);
 }
 
 export function createTrayIconFromAppIcon(
@@ -88,41 +152,13 @@ export function createTrayIconFromAppIcon(
   alpha = 1
 ): Electron.NativeImage {
   const resized = image.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
-  const normalized = applyAlpha(resized, alpha);
-
-  if (process.platform === "darwin") {
-    normalized.setTemplateImage(true);
-  }
-
-  return normalized;
+  return applyAlpha(resized, alpha);
 }
 
 export function loadAppIcon(
   resolveAssetPath: (fileName: string) => string | null
 ): Electron.NativeImage | null {
   return loadAssetImage(APP_ICON_FILE, resolveAssetPath);
-}
-
-function createFallbackTrayIcon(isActive: boolean): Electron.NativeImage {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
-      <circle cx="9" cy="9" r="5.7" fill="black" fill-opacity="0.95"/>
-      ${
-        isActive
-          ? '<circle cx="9" cy="9" r="2.6" fill="black" fill-opacity="0.75"/>'
-          : ""
-      }
-    </svg>`;
-
-  const image = nativeImage.createFromDataURL(
-    `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`
-  );
-
-  if (process.platform === "darwin") {
-    image.setTemplateImage(true);
-  }
-
-  return image;
 }
 
 interface TrayImageOptions {
@@ -145,13 +181,14 @@ export function trayImageForCurrentState(options: TrayImageOptions): Electron.Na
     return options.trayIdleIcon;
   }
 
-  return createFallbackTrayIcon(isActive);
+  return createEmergencyTrayIcon(isActive);
 }
 
 interface BuildTrayMenuOptions {
   status: DictationStatusPayload;
   onPrimaryAction: () => void;
   onOpenTapTalk: () => void;
+  onRevealVault: () => void;
   onQuit: () => void;
 }
 
@@ -177,14 +214,20 @@ export function buildTrayMenu(options: BuildTrayMenuOptions): Menu {
       }
     },
     {
-      label: `Hotkey: ${options.status.hotkeyActive}`,
-      enabled: false
-    },
-    {
       label: "Open TapTalk",
       click: () => {
         options.onOpenTapTalk();
       }
+    },
+    {
+      label: "Reveal vault in Finder",
+      click: () => {
+        options.onRevealVault();
+      }
+    },
+    {
+      label: `Hotkey: ${options.status.hotkeyActive}`,
+      enabled: false
     },
     { type: "separator" },
     {

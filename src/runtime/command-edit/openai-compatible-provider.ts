@@ -1,5 +1,12 @@
-import { ensureSafeCloudHttpProtocol, isLoopbackOrPrivateHost } from "../../core/url-security";
 import { buildEditMessages } from "./prompt";
+import {
+  ChatCompletionError,
+  ChatRequestDeps,
+  FetchLike,
+  isLocalChatEndpoint,
+  parseChatEndpoint,
+  requestChatCompletion
+} from "./chat-completion";
 import {
   CommandTransformInput,
   CommandTransformProvider,
@@ -13,42 +20,9 @@ export interface OpenAiCompatibleConfig {
   apiKey: string;
 }
 
-export type FetchLike = typeof fetch;
+export type { FetchLike };
 
-interface OpenAiCompatibleDeps {
-  fetchImpl?: FetchLike;
-  timeoutMs?: number;
-}
-
-function parseEndpoint(endpoint: string): URL | null {
-  const trimmed = endpoint.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  try {
-    const url = new URL(trimmed);
-    ensureSafeCloudHttpProtocol(url, "editing.endpoint");
-    return url;
-  } catch {
-    return null;
-  }
-}
-
-function extractContent(payload: unknown): string {
-  if (!payload || typeof payload !== "object") {
-    return "";
-  }
-
-  const choices = (payload as { choices?: unknown }).choices;
-  if (!Array.isArray(choices) || choices.length === 0) {
-    return "";
-  }
-
-  const first = choices[0] as { message?: { content?: unknown } };
-  const content = first?.message?.content;
-  return typeof content === "string" ? content : "";
-}
+type OpenAiCompatibleDeps = ChatRequestDeps;
 
 /**
  * Minimal OpenAI Chat Completions compatible provider. Works against any
@@ -62,17 +36,15 @@ export class OpenAiCompatibleCommandProvider implements CommandTransformProvider
   readonly label = "Local LLM / OpenAI-compatible";
 
   private readonly url: URL | null;
-  private readonly fetchImpl: FetchLike;
-  private readonly timeoutMs: number;
+  private readonly deps: OpenAiCompatibleDeps;
 
   constructor(private readonly config: OpenAiCompatibleConfig, deps: OpenAiCompatibleDeps = {}) {
-    this.url = parseEndpoint(config.endpoint);
-    this.fetchImpl = deps.fetchImpl ?? fetch;
-    this.timeoutMs = deps.timeoutMs ?? 120000;
+    this.url = parseChatEndpoint(config.endpoint, "editing.endpoint");
+    this.deps = deps;
   }
 
   get isLocal(): boolean {
-    return this.url ? isLoopbackOrPrivateHost(this.url.hostname) : false;
+    return this.url ? isLocalChatEndpoint(this.url) : false;
   }
 
   async isConfigured(): Promise<boolean> {
@@ -94,59 +66,20 @@ export class OpenAiCompatibleCommandProvider implements CommandTransformProvider
     }
 
     const start = Date.now();
-    const headers = new Headers({ "Content-Type": "application/json" });
-    const apiKey = this.config.apiKey.trim();
-    if (apiKey) {
-      headers.set("Authorization", `Bearer ${apiKey}`);
-    }
-
-    const body = JSON.stringify({
-      model: this.config.model.trim(),
-      messages: buildEditMessages(input),
-      temperature: 0,
-      stream: false
-    });
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    let response: Response;
+    let content: string;
     try {
-      response = await this.fetchImpl(this.url, {
-        method: "POST",
-        headers,
-        body,
-        signal: controller.signal,
-        redirect: "error"
-      });
+      content = await requestChatCompletion(this.url, this.config, buildEditMessages(input), this.deps);
     } catch (error) {
-      if (controller.signal.aborted) {
-        throw new EditTransformFailedError(`Edit provider timed out after ${this.timeoutMs}ms.`);
-      }
-      const reason = error instanceof Error ? error.message : String(error);
-      throw new EditTransformFailedError(`Edit provider request failed: ${reason}`);
-    } finally {
-      clearTimeout(timeout);
+      const reason = error instanceof ChatCompletionError ? error.message : String(error);
+      throw new EditTransformFailedError(reason);
     }
 
-    if (!response.ok) {
-      throw new EditTransformFailedError(`Edit provider returned HTTP ${response.status}.`);
-    }
-
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch {
-      throw new EditTransformFailedError("Edit provider returned an unreadable response.");
-    }
-
-    const replacementText = extractContent(payload);
-    if (!replacementText.trim()) {
+    if (!content.trim()) {
       throw new EditTransformFailedError("Edit provider returned an empty replacement.");
     }
 
     return {
-      replacementText,
+      replacementText: content,
       provider: this.id,
       model: this.config.model.trim(),
       latencyMs: Date.now() - start

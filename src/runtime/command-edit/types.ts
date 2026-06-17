@@ -6,6 +6,8 @@ export interface CommandTransformInput {
   language?: string;
   appName?: string;
   contentType?: EditContentType;
+  /** Optional retrieved notes injected into the prompt (vault retrieval). */
+  context?: string;
 }
 
 export interface CommandTransformResult {

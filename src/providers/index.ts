@@ -37,11 +37,12 @@ function oppositeMode(mode: ProviderMode): ProviderMode {
 
 function createProviderForMode(
   settings: Settings,
-  mode: ProviderMode
+  mode: ProviderMode,
+  initialPrompt: string
 ): TranscriptionProvider {
   if (mode === "local") {
     if (settings.localEngine === "whisper-cpp") {
-      return new LocalWhisperCppProvider(settings.localWhisperCpp);
+      return new LocalWhisperCppProvider(settings.localWhisperCpp, initialPrompt);
     }
     return new LocalFasterWhisperProvider(settings.localFasterWhisper);
   }
@@ -49,13 +50,13 @@ function createProviderForMode(
   return new CloudSttProvider(settings.cloud);
 }
 
-export function createProvider(settings: Settings): TranscriptionProvider {
-  const primary = createProviderForMode(settings, settings.mode);
+export function createProvider(settings: Settings, initialPrompt = ""): TranscriptionProvider {
+  const primary = createProviderForMode(settings, settings.mode, initialPrompt);
 
   if (!settings.fallback.enabled) {
     return primary;
   }
 
-  const fallback = createProviderForMode(settings, oppositeMode(settings.mode));
+  const fallback = createProviderForMode(settings, oppositeMode(settings.mode), initialPrompt);
   return new FailoverProvider(primary, fallback);
 }

@@ -11,29 +11,18 @@
     <link rel="stylesheet" href="renderer/styles/shared.css" />
   </head>
   <body class="wizard-window">
-    <div class="aurora" aria-hidden="true">
-      <div class="aurora__blob aurora__blob--1"></div>
-      <div class="aurora__blob aurora__blob--2"></div>
-      <div class="aurora__blob aurora__blob--3"></div>
-    </div>
-    <div class="grain" aria-hidden="true"></div>
-
     <div class="titlebar"></div>
 
     <!-- Onboarding-only window. Welcome pane shown first, then setup wizard pane. -->
     <div id="welcomeModal" class="wz-welcome hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
-      <div class="wz-welcome-icon" aria-hidden="true">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
-      </div>
+      <div class="wz-welcome-icon" data-taptalk-glyph="40" aria-hidden="true"></div>
       <div id="welcomeTitle" class="wz-welcome-title">Welcome to TapTalk</div>
       <div class="wz-welcome-sub">
         Privacy-first dictation for macOS. All transcription happens on your Mac by default.
       </div>
       <div class="wz-feature-list">
         <div class="wz-feature-item">
-          <span class="wz-feature-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
-          </span>
+          <span class="wz-feature-icon" data-taptalk-glyph="18" aria-hidden="true"></span>
           <span>Microphone access — required to record</span>
         </div>
         <div class="wz-feature-item">
@@ -63,9 +52,7 @@
     <div id="setupWizard" class="wz-layout hidden" role="dialog" aria-modal="true" aria-labelledby="wizardStepTitle">
       <aside class="wz-sidebar">
         <div class="wz-brand">
-          <div class="wz-brand-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
-          </div>
+          <div class="wz-brand-icon" data-taptalk-glyph="18" aria-hidden="true"></div>
           <div class="wz-brand-text">
             <div class="wz-brand-title">TapTalk</div>
             <div class="wz-brand-sub">Setup</div>
@@ -84,7 +71,7 @@
           <div id="wizardStepChip2" class="wz-step-row" data-step="2" role="button" tabindex="0">
             <div class="wz-step-badge">2</div>
             <div class="wz-step-text">
-              <span class="wz-step-label">AI Engine</span>
+              <span class="wz-step-label">Engine</span>
               <span class="wz-step-sub">Transcription</span>
             </div>
           </div>
@@ -120,20 +107,34 @@
           <div id="wizardStepMode" class="wizard-step">
             <div class="wizard-mode-cards">
               <button id="wizardModeLocalBtn" class="wizard-mode-card" type="button">
-                <div class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--local" aria-hidden="true">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                </div>
-                <div class="wizard-mode-card-title">Local Mode</div>
-                <div class="wizard-mode-card-desc">Maximum privacy. All processing happens on your Mac.</div>
-                <div class="wizard-mode-card-recommended">Recommended</div>
+                <span class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--local" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
+                <span class="wizard-mode-card-text">
+                  <span class="wizard-mode-card-title">Local <span class="wizard-mode-card-recommended">recommended</span></span>
+                  <span class="wizard-mode-card-desc">All processing stays on your Mac. Maximum privacy.</span>
+                  <span class="wizard-mode-card-facts">
+                    <span>on-device, no account</span>
+                    <span>~150 MB model, downloaded once</span>
+                    <span>works offline</span>
+                  </span>
+                </span>
+                <span class="wizard-mode-card-radio" aria-hidden="true"></span>
               </button>
               <button id="wizardModeCloudBtn" class="wizard-mode-card" type="button">
-                <div class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--cloud" aria-hidden="true">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-                </div>
-                <div class="wizard-mode-card-title">Cloud Mode</div>
-                <div class="wizard-mode-card-desc">Faster processing with powerful cloud AI models.</div>
-                <div class="wizard-mode-card-recommended" style="visibility:hidden">·</div>
+                <span class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--cloud" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                </span>
+                <span class="wizard-mode-card-text">
+                  <span class="wizard-mode-card-title">Cloud</span>
+                  <span class="wizard-mode-card-desc">Bring your own API key. Faster, off-device.</span>
+                  <span class="wizard-mode-card-facts">
+                    <span>your key: Groq, OpenAI, Deepgram…</span>
+                    <span>audio is sent to your provider</span>
+                    <span>no local model download</span>
+                  </span>
+                </span>
+                <span class="wizard-mode-card-radio" aria-hidden="true"></span>
               </button>
             </div>
           </div>
@@ -396,7 +397,7 @@
           </div>
           <div class="wz-footer-right">
             <button id="wizardNextBtn" class="modal-btn primary" type="button">Continue →</button>
-            <button id="wizardSaveBtn" class="modal-btn primary hidden" type="button">Finish ✓</button>
+            <button id="wizardSaveBtn" class="modal-btn primary hidden" type="button">Finish</button>
           </div>
         </footer>
       </div>

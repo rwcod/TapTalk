@@ -1,6 +1,6 @@
 {
   "name": "taptalk",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "TapTalk: privacy-first, local-first macOS dictation app with local faster-whisper and optional bring-your-own cloud STT providers",
   "main": "dist/electron/main.js",
   "scripts": {

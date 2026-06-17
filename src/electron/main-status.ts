@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, Tray, nativeTheme } from "electron";
+import { BrowserWindow, Menu, Tray, nativeTheme, screen } from "electron";
 import {
   DictationPhase,
   DictationStatusPayload,
@@ -27,6 +27,7 @@ interface MainStatusControllerOptions {
   positionIndicatorWindow: (win: BrowserWindow) => void;
   onPrimaryAction: () => void;
   onShowWindow: () => void;
+  onRevealVault: () => void;
   onRequestQuit: () => Promise<void>;
   onIndicatorRecoveryNeeded?: (reason: string) => void;
 }
@@ -39,6 +40,8 @@ export interface MainStatusController {
   buildTrayMenu: () => Menu;
   broadcastStatus: () => void;
   setStatus: (next: Partial<DictationStatusPayload>) => DictationStatusPayload;
+  /** Briefly show the pill with custom text, then hide. For one-shot actions. */
+  flashIndicator: (label: string) => void;
 }
 
 function clamp01(value: number): number {
@@ -55,6 +58,17 @@ function clamp01(value: number): number {
   }
 
   return value;
+}
+
+/** True when the window currently sits on the same display as the cursor. */
+function isOnCursorDisplay(win: BrowserWindow): boolean {
+  const cursorDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const bounds = win.getBounds();
+  const winDisplay = screen.getDisplayNearestPoint({
+    x: bounds.x + Math.round(bounds.width / 2),
+    y: bounds.y + Math.round(bounds.height / 2)
+  });
+  return cursorDisplay.id === winDisplay.id;
 }
 
 function isIndicatorActivePhase(phase: DictationPhase): boolean {
@@ -122,12 +136,47 @@ export function createMainStatusController(
       lightMode: !nativeTheme.shouldUseDarkColors
     });
 
-    if (!indicatorWindow.isVisible()) {
+    if (!indicatorWindow.isVisible() || !isOnCursorDisplay(indicatorWindow)) {
       options.positionIndicatorWindow(indicatorWindow);
       indicatorWindow.setAlwaysOnTop(true, "screen-saver");
       indicatorWindow.showInactive();
       indicatorWindow.moveTop();
     }
+  };
+
+  let flashTimer: NodeJS.Timeout | null = null;
+  const flashIndicator = (label: string): void => {
+    const win = options.getIndicatorWindow();
+    if (!win || win.isDestroyed() || win.webContents.isCrashed() || !options.getShowIndicator()) {
+      return;
+    }
+    win.webContents.send(IPC_EVENTS.indicatorStatus, {
+      phase: "saved",
+      mode: options.getRecordingMode(),
+      dictationMode: "dictation",
+      label,
+      lightMode: !nativeTheme.shouldUseDarkColors
+    });
+    if (!win.isVisible() || !isOnCursorDisplay(win)) {
+      options.positionIndicatorWindow(win);
+      win.setAlwaysOnTop(true, "screen-saver");
+      win.showInactive();
+      win.moveTop();
+    }
+    if (flashTimer) {
+      clearTimeout(flashTimer);
+    }
+    flashTimer = setTimeout(() => {
+      flashTimer = null;
+      // A real dictation phase may have taken over — leave it alone if so.
+      if (isIndicatorActivePhase(options.getStatus().phase)) {
+        return;
+      }
+      const current = options.getIndicatorWindow();
+      if (current && !current.isDestroyed() && current.isVisible()) {
+        current.hide();
+      }
+    }, 1600);
   };
 
   const trayImageForCurrentState = (): Electron.NativeImage => {
@@ -144,6 +193,7 @@ export function createMainStatusController(
       status: options.getStatus(),
       onPrimaryAction: options.onPrimaryAction,
       onOpenTapTalk: options.onShowWindow,
+      onRevealVault: options.onRevealVault,
       onQuit: () => {
         void options.onRequestQuit();
       }
@@ -200,6 +250,7 @@ export function createMainStatusController(
     trayImageForCurrentState,
     buildTrayMenu,
     broadcastStatus,
-    setStatus
+    setStatus,
+    flashIndicator
   };
 }

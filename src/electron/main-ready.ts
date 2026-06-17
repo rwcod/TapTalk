@@ -1,10 +1,11 @@
 import { app, BrowserWindow, Menu, screen, session, Tray } from "electron";
 import { Settings } from "../core/types";
+import { createTrayActiveIcon, createTrayIdleIcon } from "./main-tray";
 
 interface PrepareSharedProcessUiOptions {
   trayIdleAlpha: number;
   loadAppIconFromAssets: () => Electron.NativeImage | null;
-  loadTemplateIconFromAssets: (fileName: string) => Electron.NativeImage | null;
+  resolveAssetPath: (fileName: string) => string | null;
   createTrayIconFromAppIcon: (
     image: Electron.NativeImage,
     alpha?: number
@@ -61,12 +62,12 @@ export async function prepareSharedProcessUi(
     app.dock?.setIcon(appIcon);
   }
 
-  if (appIcon) {
+  if (process.platform === "darwin") {
+    options.setTrayIdleIcon(createTrayIdleIcon(options.resolveAssetPath));
+    options.setTrayActiveIcon(createTrayActiveIcon(options.resolveAssetPath));
+  } else if (appIcon) {
     options.setTrayIdleIcon(options.createTrayIconFromAppIcon(appIcon, options.trayIdleAlpha));
     options.setTrayActiveIcon(options.createTrayIconFromAppIcon(appIcon));
-  } else {
-    options.setTrayIdleIcon(options.loadTemplateIconFromAssets("tray-idleTemplate.png"));
-    options.setTrayActiveIcon(options.loadTemplateIconFromAssets("tray-activeTemplate.png"));
   }
 
   options.registerIpc();

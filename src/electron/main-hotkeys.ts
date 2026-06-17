@@ -56,6 +56,8 @@ interface FnHotkeyManagerDeps {
   startWithMode: (mode: RecordingControlMode) => Promise<unknown>;
   stopAndResetMode: () => Promise<unknown>;
   switchHoldToToggleMode: () => unknown;
+  triggerCapture?: () => void;
+  triggerCancel?: () => void;
   requestListenerReload?: (reason: string) => void;
 }
 
@@ -67,6 +69,7 @@ export class FnHotkeyManager {
   private fnComboTriggered = false;
   private fnHoldStartTimer: NodeJS.Timeout | null = null;
   private holdReleasePendingStop = false;
+  private capturePending = false;
 
   constructor(private readonly deps: FnHotkeyManagerDeps) {}
 
@@ -219,6 +222,14 @@ export class FnHotkeyManager {
     this.fnDown = false;
     this.clearFnHoldStartTimer();
 
+    if (this.capturePending) {
+      this.capturePending = false;
+      this.fnComboTriggered = false;
+      // Small delay so the Fn key-up fully propagates before the synthetic Cmd+C.
+      setTimeout(() => this.deps.triggerCapture?.(), 120);
+      return true;
+    }
+
     if (this.fnComboTriggered) {
       this.fnComboTriggered = false;
       return true;
@@ -274,12 +285,39 @@ export class FnHotkeyManager {
   }
 
   private handleGlobalKey(event: IGlobalKeyEvent, down: IGlobalKeyDownMap): boolean {
+    // Esc aborts an in-progress dictation (e.g. hotkey hit by accident). Only
+    // act while recording/starting, and only then consume the key.
+    if (
+      event.state === "DOWN" &&
+      this.normalizedEventName(event) === "ESCAPE" &&
+      (this.deps.getStatusPhase() === "recording" || this.deps.getStatusPhase() === "starting")
+    ) {
+      this.deps.triggerCancel?.();
+      return true;
+    }
+
     if (this.isFnLikeEvent(event)) {
       return this.handleFnEvent(event);
     }
 
     if (this.isSpaceLikeEvent(event)) {
       return this.handleFnSpaceEvent(event, down);
+    }
+
+    if (this.fnDown && this.normalizedEventName(event) === "M" && event.state === "DOWN") {
+      // Only capture from idle. If dictation already armed/started (held Fn past
+      // the hold delay), let the normal flow handle it rather than orphaning a
+      // recording.
+      if (this.deps.getStatusPhase() !== "idle") {
+        return false;
+      }
+      // Defer the actual capture to Fn release — sending the synthetic Cmd+C
+      // while Fn is physically held taints it with the Fn modifier and the copy
+      // silently fails ("nothing selected").
+      this.capturePending = true;
+      this.fnComboTriggered = true;
+      this.clearFnHoldStartTimer();
+      return true;
     }
 
     if (this.fnDown && this.deps.getStatusPhase() === "idle" && event.state === "DOWN") {
@@ -394,6 +432,7 @@ export class FnHotkeyManager {
     this.fnDown = false;
     this.fnComboTriggered = false;
     this.holdReleasePendingStop = false;
+    this.capturePending = false;
     this.clearFnHoldStartTimer();
 
     if (!this.keyListener) {

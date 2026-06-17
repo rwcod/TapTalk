@@ -50,6 +50,7 @@ import {
   wizardTestLocalBtn
 } from "./wizard/dom.js";
 import { state } from "./state.js";
+import { mountTaptalkGlyphs } from "./taptalk-glyph.js";
 import {
   cloudLanguageToSetting,
   localLanguageToSetting,
@@ -868,6 +869,7 @@ function bindWizardEvents() {
 }
 
 async function bootstrapWizardWindow() {
+  mountTaptalkGlyphs();
   bindWizardEvents();
 
   // Surface setup progress from the main process inside the wizard window.

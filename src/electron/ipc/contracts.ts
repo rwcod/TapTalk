@@ -8,6 +8,9 @@ import type {
 } from "../../local/local-runtime";
 import type { Settings } from "../../core/types";
 import type { TranscriptEntry } from "../../runtime/transcript-history";
+import type { VaultEntry } from "../../runtime/vault";
+
+export type { VaultEntry };
 
 export type DictationPhase = "idle" | "starting" | "recording" | "transcribing" | "editing" | "thinking";
 export type DictationMode = "dictation" | "edit";
@@ -45,7 +48,7 @@ export type CheckPermissionsOptions = {
 };
 
 export type IndicatorStatusPayload = {
-  phase: "idle" | "recording" | "transcribing" | "editing" | "thinking";
+  phase: "idle" | "recording" | "transcribing" | "editing" | "thinking" | "saved";
   /** Hotkey/control mode: hold, toggle, manual, or none. */
   mode: string;
   /** What the current recording/transformation is for. */
@@ -54,6 +57,8 @@ export type IndicatorStatusPayload = {
   bars?: number[];
   elapsedMs?: number;
   lightMode?: boolean;
+  /** Free text shown for transient flashes (e.g. the "saved" phase). */
+  label?: string;
 };
 
 export interface TapTalkBridge {
@@ -70,6 +75,11 @@ export interface TapTalkBridge {
   stopDictation(): Promise<DictationStatusPayload>;
   toggleDictation(): Promise<DictationStatusPayload>;
   clearTranscriptHistory(): Promise<DictationStatusPayload>;
+  listVault(): Promise<VaultEntry[]>;
+  readVaultBody(file: string): Promise<string | null>;
+  openVaultEntry(file: string): Promise<void>;
+  deleteVaultEntry(file: string): Promise<boolean>;
+  revealVault(): Promise<void>;
   openAccessibilitySettings(): Promise<boolean>;
   onStatus(listener: (payload: DictationStatusPayload) => void): () => void;
   findOrInstallPython(): Promise<string>;
@@ -103,6 +113,12 @@ export const IPC_CHANNELS = {
   dictationToggle: "dictation:toggle",
 
   transcriptsClear: "transcripts:clear",
+
+  vaultList: "vault:list",
+  vaultReadBody: "vault:read-body",
+  vaultOpenEntry: "vault:open-entry",
+  vaultDelete: "vault:delete",
+  vaultReveal: "vault:reveal",
 
   systemOpenAccessibilitySettings: "system:open-accessibility-settings",
   systemCheckPermissions: "system:check-permissions",

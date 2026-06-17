@@ -34,6 +34,59 @@ test("decideRoute: disabled editing always routes to dictation", () => {
   assert.equal(decideRoute("selected text", false), "dictation");
 });
 
+test("transformSelectedText: injects retrieved context into the request body", async () => {
+  let sentBody = "";
+  const config = makeEditing({
+    provider: "openai-compatible",
+    endpoint: "http://localhost:11434/v1/chat/completions",
+    model: "llama3.1"
+  });
+
+  await transformSelectedText(
+    { selectedText: "graphs are neat", commandText: "expand using my notes on RAG" },
+    config,
+    {
+      fetchImpl: (async (_url: unknown, init: { body: string }) => {
+        sentBody = init.body;
+        return new Response(JSON.stringify({ choices: [{ message: { content: "expanded" } }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }) as unknown as typeof fetch,
+      retrieveContext: async () => "RAG = retrieval augmented generation"
+    }
+  );
+
+  assert.match(sentBody, /Background notes you may draw on/);
+  assert.match(sentBody, /retrieval augmented generation/);
+});
+
+test("transformSelectedText: no context block when retriever returns null", async () => {
+  let sentBody = "";
+  const config = makeEditing({
+    provider: "openai-compatible",
+    endpoint: "http://localhost:11434/v1/chat/completions",
+    model: "llama3.1"
+  });
+
+  await transformSelectedText(
+    { selectedText: "x", commandText: "make this professional" },
+    config,
+    {
+      fetchImpl: (async (_url: unknown, init: { body: string }) => {
+        sentBody = init.body;
+        return new Response(JSON.stringify({ choices: [{ message: { content: "y" } }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }) as unknown as typeof fetch,
+      retrieveContext: async () => null
+    }
+  );
+
+  assert.doesNotMatch(sentBody, /Background notes you may draw on/);
+});
+
 test("transformSelectedText: rule command stays local even with cloud selected", async () => {
   let fetchCalled = false;
   const config = makeEditing({

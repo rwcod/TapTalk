@@ -12,29 +12,26 @@
     <link rel="stylesheet" href="renderer/styles/dashboard.css" />
   </head>
   <body>
-    <!-- Ambient aurora background -->
-    <div class="aurora" aria-hidden="true">
-      <div class="aurora__blob aurora__blob--1"></div>
-      <div class="aurora__blob aurora__blob--2"></div>
-      <div class="aurora__blob aurora__blob--3"></div>
-    </div>
-    <div class="grain" aria-hidden="true"></div>
 
     <div class="app cockpit">
       <!-- ── Floating top dock (drag region) ── -->
       <header class="topbar" id="topbar">
         <div class="topbar-brand">
-          <span class="brand-logo" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></span>
+          <span class="brand-logo" data-taptalk-glyph="16" aria-hidden="true"></span>
           <span class="brand-name">TapTalk</span>
         </div>
         <nav class="nav-dock" id="sidebarNav">
           <button class="nav-item sidebar-item active" data-view="dashboard" type="button">
-            <span class="nav-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></span>
+            <span class="nav-item-icon" data-taptalk-glyph="15" aria-hidden="true"></span>
             <span class="nav-item-label">Dictate</span>
           </button>
           <button class="nav-item sidebar-item" data-view="history" type="button">
             <span class="nav-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></span>
             <span class="nav-item-label">History</span>
+          </button>
+          <button class="nav-item sidebar-item" data-view="vault" type="button">
+            <span class="nav-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 4v5"/></svg></span>
+            <span class="nav-item-label">Vault</span>
           </button>
           <button class="nav-item sidebar-item" data-view="settings" type="button">
             <span class="nav-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
@@ -44,14 +41,15 @@
         <div class="topbar-status">
           <span class="sidebar-status-dot" aria-hidden="true"></span>
           <span class="sidebar-status-mode" id="sidebarModeLabel">Local</span>
-          <span id="providerTag" class="provider-tag" style="display:none"></span>
-          <button id="themeToggleBtn" class="theme-toggle-btn" type="button" title="Theme: System" aria-label="Theme: System" data-theme-current="system">
-            <svg class="theme-icon theme-icon--system" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-            <svg class="theme-icon theme-icon--light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.22" y1="4.22" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.78" y2="19.78"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.22" y1="19.78" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.78" y2="4.22"></line></svg>
-            <svg class="theme-icon theme-icon--dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-          </button>
         </div>
       </header>
+
+      <!-- Theme toggle: pinned bottom-left so it never collides with the nav -->
+      <button id="themeToggleBtn" class="theme-toggle-btn" type="button" title="Theme: System" aria-label="Theme: System" data-theme-current="system">
+        <svg class="theme-icon theme-icon--system" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+        <svg class="theme-icon theme-icon--light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.22" y1="4.22" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.78" y2="19.78"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.22" y1="19.78" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.78" y2="4.22"></line></svg>
+        <svg class="theme-icon theme-icon--dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </button>
 
       <!-- ── Immersive stage ── -->
       <main class="main-body cockpit-stage" id="stage">
@@ -84,7 +82,7 @@
                   <div class="hero-ring" aria-hidden="true">
                     <div class="hero-core">
                       <div class="hero-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-                      <svg class="hero-rec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                      <span class="hero-rec-icon" data-taptalk-glyph="28" aria-hidden="true"></span>
                     </div>
                   </div>
                 </button>
@@ -100,6 +98,7 @@
               <span id="hudLang">auto</span>
               <span class="meta-sep" aria-hidden="true">·</span>
               <span id="hudModel">on-device</span>
+              <span id="providerTag" class="provider-tag" style="display:none"></span>
             </div>
 
             <div class="stage-transcript">
@@ -134,6 +133,22 @@
               <button id="clearHistoryBtn" class="recent-clear-btn" type="button" disabled>Clear</button>
             </div>
             <div id="historyFullList" class="recent-list river"></div>
+          </div>
+
+          <!-- ── Vault view ── -->
+          <div id="viewVault" class="view stage-vault">
+            <div class="vault-header">
+              <span class="history-title">Vault</span>
+              <input id="vaultSearch" class="vault-search" type="search" placeholder="Search notes, titles, tags…" autocomplete="off" spellcheck="false" />
+              <button id="revealVaultBtn" class="recent-clear-btn" type="button">Reveal in Finder</button>
+            </div>
+            <div id="vaultTags" class="vault-tags"></div>
+            <div class="vault-body">
+              <div id="vaultList" class="vault-list"></div>
+              <div id="vaultDetail" class="vault-detail">
+                <div class="vault-detail-empty">Select a note to preview it.</div>
+              </div>
+            </div>
           </div>
 
           <!-- ── Settings view ── -->
@@ -390,14 +405,12 @@
     </div>
 
     <div id="welcomeModal" class="wz-welcome hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
-      <div class="wz-welcome-icon" aria-hidden="true">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
-      </div>
+      <div class="wz-welcome-icon" data-taptalk-glyph="40" aria-hidden="true"></div>
       <div id="welcomeTitle" class="wz-welcome-title">Welcome to TapTalk</div>
       <div class="wz-welcome-sub">Privacy-first dictation for macOS. All transcription happens on your Mac by default.</div>
       <div class="wz-feature-list">
         <div class="wz-feature-item">
-          <span class="wz-feature-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
+          <span class="wz-feature-icon" data-taptalk-glyph="18" aria-hidden="true"></span>
           <span>Microphone access — required to record</span>
         </div>
         <div class="wz-feature-item">
@@ -419,9 +432,7 @@
     <div id="setupWizard" class="wz-layout hidden" role="dialog" aria-modal="true" aria-labelledby="wizardStepTitle">
       <aside class="wz-sidebar">
         <div class="wz-brand">
-          <div class="wz-brand-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
-          </div>
+          <div class="wz-brand-icon" data-taptalk-glyph="18" aria-hidden="true"></div>
           <div class="wz-brand-text">
             <div class="wz-brand-title">TapTalk</div>
             <div class="wz-brand-sub">Setup</div>
@@ -439,7 +450,7 @@
           <div id="wizardStepChip2" class="wz-step-row" data-step="2" role="button" tabindex="0">
             <div class="wz-step-badge">2</div>
             <div class="wz-step-text">
-              <span class="wz-step-label">AI Engine</span>
+              <span class="wz-step-label">Engine</span>
               <span class="wz-step-sub">Transcription</span>
             </div>
           </div>
@@ -474,20 +485,34 @@
           <div id="wizardStepMode" class="wizard-step">
             <div class="wizard-mode-cards">
               <button id="wizardModeLocalBtn" class="wizard-mode-card" type="button">
-                <div class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--local" aria-hidden="true">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                </div>
-                <div class="wizard-mode-card-title">Local Mode</div>
-                <div class="wizard-mode-card-desc">Maximum privacy. All processing happens on your Mac.</div>
-                <div class="wizard-mode-card-recommended">Recommended</div>
+                <span class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--local" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
+                <span class="wizard-mode-card-text">
+                  <span class="wizard-mode-card-title">Local <span class="wizard-mode-card-recommended">recommended</span></span>
+                  <span class="wizard-mode-card-desc">All processing stays on your Mac. Maximum privacy.</span>
+                  <span class="wizard-mode-card-facts">
+                    <span>on-device, no account</span>
+                    <span>~150 MB model, downloaded once</span>
+                    <span>works offline</span>
+                  </span>
+                </span>
+                <span class="wizard-mode-card-radio" aria-hidden="true"></span>
               </button>
               <button id="wizardModeCloudBtn" class="wizard-mode-card" type="button">
-                <div class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--cloud" aria-hidden="true">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-                </div>
-                <div class="wizard-mode-card-title">Cloud Mode</div>
-                <div class="wizard-mode-card-desc">Faster processing with powerful cloud AI models.</div>
-                <div class="wizard-mode-card-recommended" style="visibility:hidden">·</div>
+                <span class="wizard-mode-card-icon-wrap wizard-mode-card-icon-wrap--cloud" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                </span>
+                <span class="wizard-mode-card-text">
+                  <span class="wizard-mode-card-title">Cloud</span>
+                  <span class="wizard-mode-card-desc">Bring your own API key. Faster, off-device.</span>
+                  <span class="wizard-mode-card-facts">
+                    <span>your key: Groq, OpenAI, Deepgram…</span>
+                    <span>audio is sent to your provider</span>
+                    <span>no local model download</span>
+                  </span>
+                </span>
+                <span class="wizard-mode-card-radio" aria-hidden="true"></span>
               </button>
             </div>
           </div>
@@ -615,7 +640,7 @@
           </div>
           <div class="wz-footer-right">
             <button id="wizardNextBtn" class="modal-btn primary" type="button">Continue →</button>
-            <button id="wizardSaveBtn" class="modal-btn primary hidden" type="button">Finish ✓</button>
+            <button id="wizardSaveBtn" class="modal-btn primary hidden" type="button">Finish</button>
           </div>
         </footer>
       </div>

@@ -103,6 +103,27 @@ pick a cloud (non-localhost) endpoint, the UI shows a clear warning:
 > to a cloud provider. Selection is detected with a best-effort clipboard probe
 > (sentinel + Cmd+C) that restores your clipboard afterwards.
 
+### Vault — capture and reuse your own knowledge
+
+TapTalk keeps a local **Vault**: a folder of Markdown notes with YAML
+frontmatter (the [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing)
+shape — readable on GitHub or in Obsidian), at `~/.taptalk/vault/`.
+
+- **Capture with Fn + M.** Select text anywhere, press **Fn + M**, and it's saved
+  to the vault instantly — offline, with the source app, title and timestamp.
+- **Auto-tagged & filed.** A background pass tags each note from a small fixed
+  vocabulary (using your configured edit LLM) and moves it into a per-tag folder,
+  with a generated `index.md` per folder.
+- **Browse in-app.** The **Vault** tab lists notes with live search, tag filters,
+  a rendered Markdown preview, right-click delete, and *Reveal in Finder*.
+- **Notes-aware edits.** When a spoken edit command refers to your notes
+  (e.g. *"rewrite this using my notes on X"*), TapTalk asks the LLM which notes
+  are relevant and feeds them into the edit — semantic, no keyword matching.
+
+Capture and auto-tagging use the same trust boundary as Select-to-edit: tagging
+and note retrieval only run with an LLM provider configured, and notes leave your
+Mac only if that provider is a cloud one.
+
 ### If Fn doesn't trigger
 
 macOS has its own Fn behaviour you may need to change:
@@ -119,6 +140,8 @@ sees it. TapTalk will detect this and surface a hint in the status row.
 - 📋 **Native auto-paste** via a tiny Swift `PasteHelper` (uses `CGEvent` — needs Accessibility, not AppleEvents).
 - 🪟 **Floating indicator pill** with a live audio waveform.
 - ✏️ **Select-to-edit.** Selected text + a spoken command = an instant voice edit, via local rules or an optional local/cloud LLM.
+- 🗃️ **Vault.** Capture selected text with **Fn + M** into a local Markdown + YAML (OKF) knowledge base — auto-tagged, filed into folders, browsable and searchable in-app.
+- 🔎 **Notes-aware edits.** Voice edits can pull in relevant Vault notes as context (LLM-selected) when your command asks for them.
 - 🌍 **Multi-language**, with an optional bilingual mode (e.g. Polish + English) on the faster-whisper engine.
 - 🔑 **API keys in macOS Keychain** (or plaintext settings if you prefer; you choose in setup).
 - 💾 **Recent transcripts panel** with quick copy and clear-all.
@@ -179,6 +202,19 @@ To produce a redistributable `.dmg`:
 ```bash
 npm run dist
 # Output: dist/TapTalk-<version>-macos-arm64.dmg
+```
+
+### App icon (maintainers)
+
+Vector source: `src/electron/assets/icon.svg` (sync from
+`taptalk-website/public/favicon.svg` when the brand icon changes).
+
+Raster outputs (`icon.png`, `build/icon.icns`, tray template PNGs) are
+**committed** — CI does not regenerate them. After editing `icon.svg`:
+
+```bash
+pip3 install -r requirements-dev.txt   # once; Pillow only
+python3 scripts/generate-app-icons.py  # macOS + qlmanage + iconutil
 ```
 
 ## Known limitations

@@ -51,13 +51,17 @@ const DEV_REPLACEMENTS: ReplacementRule[] = [
   { pattern: /\bredis\b/gi, value: "Redis" }
 ];
 
-export function normalizeTranscript(text: string): string {
+export function normalizeTranscript(
+  text: string,
+  extraReplacements: ReplacementRule[] = []
+): string {
   if (!text || text.trim().length === 0) {
     return text;
   }
 
   let normalized = text;
-  for (const rule of DEV_REPLACEMENTS) {
+  // User dictionary replacements run first so they win over the built-ins.
+  for (const rule of [...extraReplacements, ...DEV_REPLACEMENTS]) {
     normalized = normalized.replace(rule.pattern, rule.value);
   }
 

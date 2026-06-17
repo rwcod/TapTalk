@@ -18,7 +18,7 @@
 html, body {
   width: 100%; height: 100%; overflow: hidden;
   background: transparent;
-  font-family: "Inter Variable", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   /* Pill sits near the bottom of the transparent window so the drop-shadow
      has room to render below it without being clipped by the window edge. */
@@ -40,14 +40,13 @@ html, body {
   height: 44px;
   border-radius: 99px;
   overflow: hidden;                         /* keeps the aurora cloud clipped to the pill */
-  background: rgba(16, 18, 24, 0.72);
-  -webkit-backdrop-filter: blur(30px) saturate(1.7);
-  backdrop-filter: blur(30px) saturate(1.7);
+  background: rgba(20, 22, 28, 0.86);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.48),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
-    0 0 20px rgba(var(--t-r), var(--t-g), var(--t-b), 0.28);
+    0 6px 18px rgba(0, 0, 0, 0.44),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.10),
+    0 0 0 1px rgba(var(--t-r), var(--t-g), var(--t-b), 0.22);
   white-space: nowrap;
   transition:
     --t-r 520ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -66,8 +65,10 @@ html, body {
 /* Content sits above the aurora */
 .pill > :not(.pill-aurora) { position: relative; z-index: 1; }
 
-/* ── Parallax aurora cloud ── */
-.pill-aurora {
+/* Decorative parallax aurora cloud removed — the pill shows state via its
+   status ring + waveform color, no drifting cloud needed. */
+.pill-aurora { display: none; }
+.pill-aurora--legacy {
   position: absolute; inset: 0;
   border-radius: inherit;
   overflow: hidden;

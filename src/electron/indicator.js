@@ -55,9 +55,11 @@ function render(payload) {
 
   pill.dataset.phase = phase;
   text.textContent =
-    phase === "recording" && dictationMode === "edit"
-      ? "Editing"
-      : LABELS[phase] ?? LABELS.recording;
+    phase === "saved"
+      ? payload?.label ?? "Saved"
+      : phase === "recording" && dictationMode === "edit"
+        ? "Editing"
+        : LABELS[phase] ?? LABELS.recording;
 
   pill.classList.toggle("light", !!payload?.lightMode);
 

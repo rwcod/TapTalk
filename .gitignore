@@ -13,6 +13,10 @@ coverage/
 *.blockmap
 *.tgz
 
+# Icon intermediates (committed: build/icon.icns, src/electron/assets/*)
+build/icon.iconset/
+build/icon.svg
+
 # Logs
 *.log
 npm-debug.log*

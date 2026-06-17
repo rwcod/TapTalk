@@ -24,6 +24,11 @@ const bridge: TapTalkBridge = {
   stopDictation: () => ipcRenderer.invoke(IPC_CHANNELS.dictationStop),
   toggleDictation: () => ipcRenderer.invoke(IPC_CHANNELS.dictationToggle),
   clearTranscriptHistory: () => ipcRenderer.invoke(IPC_CHANNELS.transcriptsClear),
+  listVault: () => ipcRenderer.invoke(IPC_CHANNELS.vaultList),
+  readVaultBody: (file) => ipcRenderer.invoke(IPC_CHANNELS.vaultReadBody, file),
+  openVaultEntry: (file) => ipcRenderer.invoke(IPC_CHANNELS.vaultOpenEntry, file),
+  deleteVaultEntry: (file) => ipcRenderer.invoke(IPC_CHANNELS.vaultDelete, file),
+  revealVault: () => ipcRenderer.invoke(IPC_CHANNELS.vaultReveal),
   openAccessibilitySettings: () =>
     ipcRenderer.invoke(IPC_CHANNELS.systemOpenAccessibilitySettings),
   onStatus: (listener) => {

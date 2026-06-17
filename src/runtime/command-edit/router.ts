@@ -33,6 +33,8 @@ export function decideRoute(
 
 export interface CommandProviderDeps {
   fetchImpl?: FetchLike;
+  /** Optional note retriever; when it returns text it is injected into the prompt. */
+  retrieveContext?: (command: string, selectedText: string) => Promise<string | null>;
 }
 
 /**
@@ -86,7 +88,16 @@ export async function transformSelectedText(
     throw new EditProviderNotConfiguredError();
   }
 
-  return provider.transform(input);
+  let enriched = input;
+  if (deps.retrieveContext) {
+    const context = await deps.retrieveContext(input.commandText, input.selectedText).catch(() => null);
+    if (context) {
+      console.log(`[taptalk:edit] injected ${context.length} chars of vault context`);
+      enriched = { ...input, context };
+    }
+  }
+
+  return provider.transform(enriched);
 }
 
 export function isSelectedTextEditingEnabled(settings: Settings): boolean {
