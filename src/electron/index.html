@@ -165,6 +165,7 @@
                     <button id="tabGeneralBtn" class="settings-tab-btn active" type="button">General</button>
                     <button id="tabLocalBtn" class="settings-tab-btn" type="button">Local AI</button>
                     <button id="tabCloudBtn" class="settings-tab-btn" type="button">Cloud API</button>
+                    <button id="tabVaultBtn" class="settings-tab-btn" type="button">Vault</button>
                     <button id="tabEditingBtn" class="settings-tab-btn" type="button">Text Editing</button>
                   </div>
 
@@ -370,6 +371,58 @@
                     </div>
                   </div>
 
+                  <div id="tabVaultPanel" class="settings-tab-panel hidden">
+                    <div class="section">
+                      <div class="section-label">Capture</div>
+                      <div class="field-group">
+                        <label for="vaultCaptureDestinationSelect">Save dictations to</label>
+                        <select id="vaultCaptureDestinationSelect">
+                          <option value="taptalk">TapTalk Vault</option>
+                          <option value="folder">Obsidian folder</option>
+                        </select>
+                        <div class="hint">TapTalk Vault is always available. Choose where new dictations are written.</div>
+                      </div>
+                    </div>
+
+                    <div class="section">
+                      <div class="section-label">AI context</div>
+                      <div class="field-group">
+                        <label>Notes the AI can search and link</label>
+                        <label class="check-row">
+                          <input id="vaultIncludeTapTalkCheck" type="checkbox" />
+                          TapTalk Vault
+                        </label>
+                        <label class="check-row">
+                          <input id="vaultIncludeObsidianCheck" type="checkbox" />
+                          Obsidian folder
+                        </label>
+                      </div>
+                    </div>
+
+                    <div id="vaultCaptureFolderGroup" class="section hidden">
+                      <div class="section-label">Obsidian folder</div>
+                      <div class="field-group">
+                        <div class="path-row">
+                          <input id="vaultCaptureFolderInput" type="text" placeholder="/Users/me/Documents/Obsidian Vault" />
+                          <button id="vaultChooseCaptureFolderBtn" class="secondary-btn" type="button">Choose</button>
+                        </div>
+                        <div id="vaultCaptureFolderStatus" class="hint" aria-live="polite">Shared by the options above — TapTalk reads and writes this folder.</div>
+                      </div>
+                    </div>
+
+                    <div class="section">
+                      <div class="section-label">Agent Access</div>
+                      <div class="field-group">
+                        <label>Connect AI tools to your vault</label>
+                        <div class="path-row">
+                          <button id="mcpCopyConfigBtn" class="secondary-btn" type="button">Copy config</button>
+                          <button id="mcpCopyPromptBtn" class="secondary-btn" type="button">Copy prompt</button>
+                        </div>
+                        <div id="mcpCopyStatus" class="hint" aria-live="polite">For Claude Desktop, Claude Code, Cursor, Codex, and Antigravity.</div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div id="saveToast" class="saved-indicator">Saved</div>
                 </div>
               </div>
@@ -451,7 +504,7 @@
             <div class="wz-step-badge">2</div>
             <div class="wz-step-text">
               <span class="wz-step-label">Engine</span>
-              <span class="wz-step-sub">Transcription</span>
+              <span class="wz-step-sub">Model &amp; language</span>
             </div>
           </div>
           <div class="wz-step-connector" aria-hidden="true"></div>
@@ -466,8 +519,16 @@
           <div id="wizardStepChip4" class="wz-step-row" data-step="4" role="button" tabindex="0">
             <div class="wz-step-badge">4</div>
             <div class="wz-step-text">
-              <span class="wz-step-label">Preferences</span>
-              <span class="wz-step-sub">Language &amp; paste</span>
+              <span class="wz-step-label">Vault</span>
+              <span class="wz-step-sub">Notes &amp; capture</span>
+            </div>
+          </div>
+          <div class="wz-step-connector" aria-hidden="true"></div>
+          <div id="wizardStepChip5" class="wz-step-row" data-step="5" role="button" tabindex="0">
+            <div class="wz-step-badge">5</div>
+            <div class="wz-step-text">
+              <span class="wz-step-label">AI</span>
+              <span class="wz-step-sub">Editing &amp; agents</span>
             </div>
           </div>
         </nav>
@@ -577,6 +638,12 @@
               </div>
               <div id="wizardCloudStatus" class="wizard-status" aria-live="polite"></div>
             </div>
+            <div class="field-group">
+              <label for="wizardLanguageSelect">Language</label>
+              <select id="wizardLanguageSelect"></select>
+              <label id="wizardLanguageIncludeEnglishRow" class="check-row"><input id="wizardLanguageIncludeEnglishCheck" type="checkbox" /> Include English</label>
+              <div class="hint">Pick your main dictation language. Leave on "Auto" if you mix languages.</div>
+            </div>
           </div>
 
           <div id="wizardStepPermissions" class="wizard-step hidden">
@@ -589,39 +656,63 @@
             <button id="wizardPermRefreshBtn" class="secondary-btn" type="button">Refresh status</button>
             <div id="wizardPermStatus" class="wizard-status" aria-live="polite"></div>
             <div class="hint">Microphone is the only must-have. Accessibility is only needed if you use the Fn hotkey or auto-paste — you can grant it later in Settings.</div>
+            <label class="check-row check-row--divided"><input id="wizardAutopasteCheck" type="checkbox" /> Auto-paste into the active app after dictation</label>
           </div>
 
-          <div id="wizardStepPreferences" class="wizard-step hidden">
-            <div class="wizard-step-desc">Almost done — these are optional. The defaults work out of the box, so you can just hit Finish.</div>
+          <div id="wizardStepVault" class="wizard-step hidden">
+            <div class="wizard-step-desc">TapTalk Vault is always active — every dictation is saved there. Optionally send captures to your Obsidian folder instead, or let the AI read your existing Obsidian notes.</div>
             <div class="field-group">
-              <label for="wizardLanguageSelect">Language</label>
-              <select id="wizardLanguageSelect"></select>
-              <label id="wizardLanguageIncludeEnglishRow" class="check-row"><input id="wizardLanguageIncludeEnglishCheck" type="checkbox" /> Include English</label>
-              <div class="hint">Pick your main dictation language. Leave on "Auto" if you mix languages.</div>
+              <label for="wizardCaptureDestinationSelect">Save dictations to</label>
+              <select id="wizardCaptureDestinationSelect">
+                <option value="taptalk">TapTalk Vault</option>
+                <option value="folder">Obsidian folder</option>
+              </select>
             </div>
-            <label class="check-row"><input id="wizardAutopasteCheck" type="checkbox" /> Auto-paste into the active app after dictation</label>
-            <button id="wizardPrefsAdvancedToggleBtn" class="secondary-btn" type="button">Show advanced options</button>
-            <div id="wizardPrefsAdvancedFields" class="wizard-grid hidden">
+            <div class="field-group">
+              <label class="check-row"><input id="wizardUseObsidianCheck" type="checkbox" /> Use my Obsidian notes as AI context</label>
+            </div>
+            <div id="wizardObsidianFolderGroup" class="field-group hidden">
+              <label for="wizardObsidianFolderInput">Obsidian folder</label>
+              <div class="path-row">
+                <input id="wizardObsidianFolderInput" type="text" placeholder="/Users/you/Documents/Obsidian Vault" />
+                <button id="wizardChooseObsidianFolderBtn" class="secondary-btn" type="button">Choose</button>
+              </div>
+              <div id="wizardObsidianStatus" class="wizard-status" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div id="wizardStepIntegrations" class="wizard-step hidden">
+            <div class="wizard-step-desc">Optional — voice-edit selected text and connect AI agents to your vault. The defaults work with no setup, so you can just hit Finish.</div>
+            <div class="field-group">
+              <label>Selected-text editing</label>
+              <label class="check-row"><input id="wizardEditingEnabledCheck" type="checkbox" /> Enable voice editing for selected text</label>
+              <div class="hint">Select text, press the hotkey, speak an edit command. Works out of the box with basic local commands — no setup needed.</div>
+            </div>
+            <div id="wizardEditingProviderFields" class="section">
+              <div class="section-label">Edit Transform Provider</div>
+              <div class="field-group"><label for="wizardEditingProviderSelect">Provider</label><select id="wizardEditingProviderSelect"><option value="rule-based">Basic Local Commands (no setup)</option><option value="openai-compatible">Local LLM / OpenAI-compatible</option></select></div>
+              <div id="wizardEditingLlmFields">
+                <div class="field-group"><label for="wizardEditingEndpointInput">Endpoint (chat completions)</label><input id="wizardEditingEndpointInput" type="text" placeholder="http://localhost:11434/v1/chat/completions" /></div>
+                <div class="field-group"><label for="wizardEditingModelInput">Model</label><input id="wizardEditingModelInput" type="text" placeholder="gemini-2.5-flash or llama3.1" /></div>
+                <div class="field-group"><label for="wizardEditingApiKeyInput">API key (remote endpoints only)</label><input id="wizardEditingApiKeyInput" type="password" autocomplete="off" placeholder="Leave empty for local endpoints" /></div>
+                <div id="wizardEditingCloudWarning" class="hint" style="display:none">Selected text and spoken edit commands are sent to the selected provider. Use a local endpoint for private content.</div>
+                <div id="wizardEditingStatus" class="wizard-status" aria-live="polite"></div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-label">Agent Access</div>
+              <div class="field-group">
+                <label>Connect AI tools to your vault</label>
+                <div class="path-row">
+                  <button id="wizardMcpCopyConfigBtn" class="secondary-btn" type="button">Copy config</button>
+                  <button id="wizardMcpCopyPromptBtn" class="secondary-btn" type="button">Copy prompt</button>
+                </div>
+                <div id="wizardMcpCopyStatus" class="hint" aria-live="polite">For Claude Code, Cursor, Codex. Choose your vault folder first.</div>
+              </div>
               <div class="field-group">
                 <label for="wizardSecretBackendSelect">API key storage</label>
                 <select id="wizardSecretBackendSelect"><option value="settings">settings.json (no system prompts)</option><option value="safeStorage">macOS Keychain (encrypted, may ask for password)</option></select>
                 <div class="hint">Only relevant for cloud / remote edit keys. Keychain keeps them out of config files; macOS may ask for your password.</div>
-              </div>
-              <div class="field-group">
-                <label>Selected-text editing</label>
-                <label class="check-row"><input id="wizardEditingEnabledCheck" type="checkbox" /> Enable voice editing for selected text</label>
-                <div class="hint">Select text, press the hotkey, speak an edit command. Works out of the box with basic local commands — no setup needed.</div>
-              </div>
-              <div id="wizardEditingProviderFields" class="section">
-                <div class="section-label">Edit Transform Provider</div>
-                <div class="field-group"><label for="wizardEditingProviderSelect">Provider</label><select id="wizardEditingProviderSelect"><option value="rule-based">Basic Local Commands (no setup)</option><option value="openai-compatible">Local LLM / OpenAI-compatible</option></select></div>
-                <div id="wizardEditingLlmFields">
-                  <div class="field-group"><label for="wizardEditingEndpointInput">Endpoint (chat completions)</label><input id="wizardEditingEndpointInput" type="text" placeholder="http://localhost:11434/v1/chat/completions" /></div>
-                  <div class="field-group"><label for="wizardEditingModelInput">Model</label><input id="wizardEditingModelInput" type="text" placeholder="gemini-2.5-flash or llama3.1" /></div>
-                  <div class="field-group"><label for="wizardEditingApiKeyInput">API key (remote endpoints only)</label><input id="wizardEditingApiKeyInput" type="password" autocomplete="off" placeholder="Leave empty for local endpoints" /></div>
-                  <div id="wizardEditingCloudWarning" class="hint" style="display:none">Selected text and spoken edit commands are sent to the selected provider. Use a local endpoint for private content.</div>
-                  <div id="wizardEditingStatus" class="wizard-status" aria-live="polite"></div>
-                </div>
               </div>
             </div>
           </div>
@@ -634,6 +725,7 @@
           </div>
           <div class="wz-dots" aria-hidden="true">
             <span class="wz-dot active"></span>
+            <span class="wz-dot"></span>
             <span class="wz-dot"></span>
             <span class="wz-dot"></span>
             <span class="wz-dot"></span>

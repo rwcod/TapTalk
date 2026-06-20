@@ -110,19 +110,22 @@ frontmatter (the [Open Knowledge Format](https://cloud.google.com/blog/products/
 shape — readable on GitHub or in Obsidian), at `~/.taptalk/vault/`.
 
 - **Capture with Fn + M.** Select text anywhere, press **Fn + M**, and it's saved
-  to the vault instantly — offline, with the source app, title and timestamp.
-- **Auto-tagged & filed.** A background pass tags each note from a small fixed
-  vocabulary (using your configured edit LLM) and moves it into a per-tag folder,
-  with a generated `index.md` per folder.
+  instantly — offline, with the source app, title and created time. You can save to
+  the TapTalk Vault or directly into an Obsidian folder.
+- **Obsidian-friendly OKF.** TapTalk Vault captures live in `notes/` with
+  readable filenames. Tags stay in YAML frontmatter instead of folder names, so
+  Obsidian stays navigable.
 - **Browse in-app.** The **Vault** tab lists notes with live search, tag filters,
   a rendered Markdown preview, right-click delete, and *Reveal in Finder*.
 - **Notes-aware edits.** When a spoken edit command refers to your notes
   (e.g. *"rewrite this using my notes on X"*), TapTalk asks the LLM which notes
   are relevant and feeds them into the edit — semantic, no keyword matching.
+- **Obsidian as a source.** Add an Obsidian folder in Settings so note-aware
+  edits can use both TapTalk captures and your existing Obsidian notes.
 
 Capture and auto-tagging use the same trust boundary as Select-to-edit: tagging
-and note retrieval only run with an LLM provider configured, and notes leave your
-Mac only if that provider is a cloud one.
+and note retrieval only run with an LLM provider configured, and selected notes
+leave your Mac only if that provider is a cloud one.
 
 ### If Fn doesn't trigger
 

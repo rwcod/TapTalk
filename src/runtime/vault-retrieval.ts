@@ -1,11 +1,11 @@
-import type { EditingConfig } from "../core/types";
+import type { EditingConfig, VaultConfig } from "../core/types";
 import {
   ChatMessage,
   ChatRequestDeps,
   parseChatEndpoint,
   requestChatCompletion
 } from "./command-edit/chat-completion";
-import { listVault, readVaultNoteBody, VaultEntry } from "./vault";
+import { listKnowledgeVault, readVaultEntryBody, VaultEntry } from "./vault";
 
 const MAX_NOTES = 3;
 const MAX_CHARS = 3000;
@@ -21,7 +21,10 @@ export function buildSelectionMessages(
   entries: VaultEntry[]
 ): ChatMessage[] {
   const catalog = entries
-    .map((e, i) => `${i + 1}. ${e.title} [${e.tags.join(", ")}] — ${e.excerpt}`)
+    .map((e, i) => {
+      const origin = e.rootLabel ? ` (${e.rootLabel})` : "";
+      return `${i + 1}. ${e.title}${origin} [${e.tags.join(", ")}] — ${e.excerpt}`;
+    })
     .join("\n");
   return [
     {
@@ -58,6 +61,7 @@ export async function retrieveVaultContext(
   command: string,
   selectedText: string,
   config: EditingConfig,
+  vaultConfig?: VaultConfig,
   deps: ChatRequestDeps = {}
 ): Promise<string | null> {
   if (config.provider !== "openai-compatible") {
@@ -68,7 +72,7 @@ export async function retrieveVaultContext(
     return null;
   }
 
-  const entries = await listVault();
+  const entries = await listKnowledgeVault(vaultConfig);
   if (entries.length === 0) {
     return null;
   }
@@ -87,7 +91,7 @@ export async function retrieveVaultContext(
 
   const bodies: string[] = [];
   for (const index of picks) {
-    const body = await readVaultNoteBody(entries[index - 1].file);
+    const body = await readVaultEntryBody(entries[index - 1]);
     if (body) {
       bodies.push(body.trim());
     }

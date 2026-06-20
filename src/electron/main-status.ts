@@ -41,7 +41,7 @@ export interface MainStatusController {
   broadcastStatus: () => void;
   setStatus: (next: Partial<DictationStatusPayload>) => DictationStatusPayload;
   /** Briefly show the pill with custom text, then hide. For one-shot actions. */
-  flashIndicator: (label: string) => void;
+  flashIndicator: (label: string, durationMs?: number) => void;
 }
 
 function clamp01(value: number): number {
@@ -145,7 +145,7 @@ export function createMainStatusController(
   };
 
   let flashTimer: NodeJS.Timeout | null = null;
-  const flashIndicator = (label: string): void => {
+  const flashIndicator = (label: string, durationMs = 1600): void => {
     const win = options.getIndicatorWindow();
     if (!win || win.isDestroyed() || win.webContents.isCrashed() || !options.getShowIndicator()) {
       return;
@@ -176,7 +176,7 @@ export function createMainStatusController(
       if (current && !current.isDestroyed() && current.isVisible()) {
         current.hide();
       }
-    }, 1600);
+    }, durationMs);
   };
 
   const trayImageForCurrentState = (): Electron.NativeImage => {

@@ -50,10 +50,14 @@ export async function prepareSharedProcessUi(
 ): Promise<void> {
   extendDarwinPath();
 
-  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
-    callback(false);
+  const isClipboardWrite = (p: string) =>
+    p === "clipboard-write" || p === "clipboard-sanitized-write";
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(isClipboardWrite(permission));
   });
-  session.defaultSession.setPermissionCheckHandler(() => false);
+  session.defaultSession.setPermissionCheckHandler((_wc, permission) =>
+    isClipboardWrite(permission)
+  );
 
   const appIcon = options.loadAppIconFromAssets();
   options.setAppIcon(appIcon);

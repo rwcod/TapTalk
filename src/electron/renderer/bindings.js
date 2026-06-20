@@ -21,6 +21,11 @@ import {
   cloudUrlInput,
   copyBtn,
   fallbackCheck,
+  vaultCaptureDestinationSelect,
+  vaultCaptureFolderInput,
+  vaultChooseCaptureFolderBtn,
+  vaultIncludeTapTalkCheck,
+  vaultIncludeObsidianCheck,
   editingEnabledCheck,
   editingProviderSelect,
   editingEndpointInput,
@@ -43,6 +48,9 @@ import {
   whisperCppDownloadBtn,
   modeCloudBtn,
   modeLocalBtn,
+  mcpCopyConfigBtn,
+  mcpCopyPromptBtn,
+  mcpCopyStatus,
   openAccessibilityBtn,
   openWizardBtn,
   recBtn,
@@ -53,6 +61,7 @@ import {
   settingsTrigger,
   setupWizard,
   tabCloudBtn,
+  tabVaultBtn,
   tabEditingBtn,
   tabGeneralBtn,
   tabLocalBtn,
@@ -78,17 +87,24 @@ import {
   wizardModeCloudBtn,
   wizardModeLocalBtn,
   wizardNextBtn,
+  wizardChooseObsidianFolderBtn,
+  wizardMcpCopyConfigBtn,
+  wizardMcpCopyPromptBtn,
+  wizardMcpCopyStatus,
+  wizardObsidianFolderInput,
+  wizardObsidianStatus,
   wizardPermAccessibilityBtn,
   wizardPermInputMonitoringBtn,
   wizardPermMicrophoneBtn,
   wizardPermRefreshBtn,
-  wizardPrefsAdvancedToggleBtn,
   wizardPrepareLocalBtn,
   wizardPrepareOnSaveCheck,
   wizardPythonPathInput,
   wizardSaveBtn,
   wizardSkipBtn,
   wizardTestLocalBtn,
+  wizardUseObsidianCheck,
+  wizardCaptureDestinationSelect,
   themeToggleBtn
 } from "./dom.js";
 import { state } from "./state.js";
@@ -98,8 +114,11 @@ import {
   syncThemeBtn,
   syncEditingFields,
   syncEngineSection,
+  syncVaultFields,
   prepareWhisperCppModel
 } from "./settings-panel.js";
+import { syncWizardObsidianFields } from "./wizard/render.js";
+import { copyMcpConfig, copyMcpSetupPrompt } from "./mcp-copy.js";
 
 function bindPressToReveal(button, input) {
   if (!button || !input) {
@@ -131,6 +150,24 @@ function bindPressToReveal(button, input) {
   });
 }
 
+function clearWizardObsidianStatus() {
+  if (!wizardObsidianStatus) return;
+  wizardObsidianStatus.textContent = "";
+  wizardObsidianStatus.classList.remove("success", "error");
+}
+
+function settingsMcpVaultPath() {
+  const usesObsidian =
+    vaultCaptureDestinationSelect?.value === "folder" || vaultIncludeObsidianCheck?.checked;
+  return usesObsidian ? (vaultCaptureFolderInput?.value.trim() || "") : "";
+}
+
+function wizardMcpVaultPath() {
+  const usesObsidian =
+    wizardCaptureDestinationSelect?.value === "folder" || wizardUseObsidianCheck?.checked;
+  return usesObsidian ? (wizardObsidianFolderInput?.value.trim() || "") : "";
+}
+
 export function bindRendererEvents({
   applyTheme,
   applyWizardLocalModelProfile,
@@ -154,7 +191,6 @@ export function bindRendererEvents({
   renderStatus,
   renderWizardCloudAdvanced,
   renderWizardMode,
-  renderWizardPrefsAdvanced,
   renderWizardStep,
   requestMicrophonePermission,
   resetOnboardingFlow,
@@ -274,6 +310,9 @@ export function bindRendererEvents({
   tabGeneralBtn.addEventListener("click", () => renderSettingsTab("general"));
   tabLocalBtn.addEventListener("click", () => renderSettingsTab("local"));
   tabCloudBtn.addEventListener("click", () => renderSettingsTab("cloud"));
+  if (tabVaultBtn) {
+    tabVaultBtn.addEventListener("click", () => renderSettingsTab("vault"));
+  }
   if (tabEditingBtn) {
     tabEditingBtn.addEventListener("click", () => renderSettingsTab("editing"));
   }
@@ -364,6 +403,50 @@ export function bindRendererEvents({
 
   hotkeyProfileSelect.addEventListener("change", scheduleAutoSave);
   secretBackendSelect.addEventListener("change", scheduleAutoSave);
+
+  // Capture destination and the Obsidian context checkbox both drive whether
+  // the folder field is needed, so both re-sync visibility on change.
+  if (vaultCaptureDestinationSelect) {
+    vaultCaptureDestinationSelect.addEventListener("change", () => {
+      syncVaultFields();
+      scheduleAutoSave();
+    });
+  }
+  if (vaultCaptureFolderInput) {
+    vaultCaptureFolderInput.addEventListener("change", scheduleAutoSave);
+  }
+  if (vaultChooseCaptureFolderBtn) {
+    vaultChooseCaptureFolderBtn.addEventListener("click", async () => {
+      const folder = await window.tapTalk.chooseFolder();
+      if (!folder || !vaultCaptureFolderInput) return;
+      vaultCaptureFolderInput.value = folder;
+      syncVaultFields();
+      scheduleAutoSave();
+    });
+  }
+  if (vaultIncludeTapTalkCheck) {
+    vaultIncludeTapTalkCheck.addEventListener("change", scheduleAutoSave);
+  }
+  if (vaultIncludeObsidianCheck) {
+    vaultIncludeObsidianCheck.addEventListener("change", () => {
+      syncVaultFields();
+      scheduleAutoSave();
+    });
+  }
+  if (mcpCopyConfigBtn) {
+    mcpCopyConfigBtn.addEventListener("click", () => {
+      void copyMcpConfig(settingsMcpVaultPath(), mcpCopyStatus).catch(() => {
+        if (mcpCopyStatus) mcpCopyStatus.textContent = "Could not copy MCP config.";
+      });
+    });
+  }
+  if (mcpCopyPromptBtn) {
+    mcpCopyPromptBtn.addEventListener("click", () => {
+      void copyMcpSetupPrompt(settingsMcpVaultPath(), mcpCopyStatus).catch(() => {
+        if (mcpCopyStatus) mcpCopyStatus.textContent = "Could not copy setup prompt.";
+      });
+    });
+  }
 
   if (editingEnabledCheck) {
     editingEnabledCheck.addEventListener("change", scheduleAutoSave);
@@ -574,11 +657,42 @@ export function bindRendererEvents({
     wizardState.cloudAdvancedOpen = !wizardState.cloudAdvancedOpen;
     renderWizardCloudAdvanced();
   });
-  if (wizardPrefsAdvancedToggleBtn) {
-    wizardPrefsAdvancedToggleBtn.addEventListener("click", () => {
-      wizardState.prefsAdvancedOpen = !wizardState.prefsAdvancedOpen;
-      renderWizardPrefsAdvanced();
+  if (wizardCaptureDestinationSelect) {
+    wizardCaptureDestinationSelect.addEventListener("change", () => {
+      syncWizardObsidianFields();
+      clearWizardObsidianStatus();
       persistWizardDraft();
+    });
+  }
+  if (wizardUseObsidianCheck) {
+    wizardUseObsidianCheck.addEventListener("change", () => {
+      syncWizardObsidianFields();
+      clearWizardObsidianStatus();
+      persistWizardDraft();
+    });
+  }
+  if (wizardChooseObsidianFolderBtn) {
+    wizardChooseObsidianFolderBtn.addEventListener("click", async () => {
+      const folder = await window.tapTalk.chooseFolder();
+      if (!folder || !wizardObsidianFolderInput) return;
+      wizardObsidianFolderInput.value = folder;
+      syncWizardObsidianFields();
+      clearWizardObsidianStatus();
+      persistWizardDraft();
+    });
+  }
+  if (wizardMcpCopyConfigBtn) {
+    wizardMcpCopyConfigBtn.addEventListener("click", () => {
+      void copyMcpConfig(wizardMcpVaultPath(), wizardMcpCopyStatus).catch(() => {
+        if (wizardMcpCopyStatus) wizardMcpCopyStatus.textContent = "Could not copy MCP config.";
+      });
+    });
+  }
+  if (wizardMcpCopyPromptBtn) {
+    wizardMcpCopyPromptBtn.addEventListener("click", () => {
+      void copyMcpSetupPrompt(wizardMcpVaultPath(), wizardMcpCopyStatus).catch(() => {
+        if (wizardMcpCopyStatus) wizardMcpCopyStatus.textContent = "Could not copy setup prompt.";
+      });
     });
   }
   if (wizardEditingProviderSelect) {

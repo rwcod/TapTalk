@@ -46,6 +46,7 @@ export interface RegisterIpcDeps {
   setStatus: (next: Partial<DictationStatusPayload>) => DictationStatusPayload;
 
   openMacPrivacySettings: () => Promise<void>;
+  getMcpLaunchConfig: (vaultPath?: string) => { name: string; command: string; args: string[] };
   collectPermissionSnapshot: (rawOptions: unknown) => Promise<PermissionsStatus>;
   askForMicrophoneAccess: () => Promise<boolean>;
   openAccessibilitySettingsUrl: () => Promise<void>;
@@ -53,7 +54,5 @@ export interface RegisterIpcDeps {
   openMicrophoneSettingsUrl: () => Promise<void>;
   refreshPermissionsAndStatus: () => Promise<DictationStatusPayload>;
 
-  onWizardCompleted: () => Promise<void> | void;
-  onWizardOpenRequested: () => Promise<void> | void;
   resizeMainWindowForView: (view: string) => void;
 }

@@ -63,8 +63,12 @@ function render(payload) {
 
   pill.classList.toggle("light", !!payload?.lightMode);
 
-  if (timerEl && typeof payload?.elapsedMs === "number") {
-    timerEl.textContent = formatTimer(payload.elapsedMs);
+  if (timerEl) {
+    timerEl.hidden = phase !== "recording";
+    timerEl.textContent =
+      phase === "recording" && typeof payload?.elapsedMs === "number"
+        ? formatTimer(payload.elapsedMs)
+        : "";
   }
 
   if (phase === "recording") {

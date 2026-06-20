@@ -27,10 +27,9 @@ function ensureTrustedUrlsInitialized(): void {
   }
 
   const mainUrl = pathToFileURL(resolveUiPath("index.html")).toString();
-  const wizardUrl = pathToFileURL(resolveUiPath("wizard.html")).toString();
   const indicatorUrl = pathToFileURL(resolveUiPath("indicator.html")).toString();
-  trustedRendererUrls = new Set([mainUrl, wizardUrl]);
-  trustedAppUrls = new Set([mainUrl, wizardUrl, indicatorUrl]);
+  trustedRendererUrls = new Set([mainUrl]);
+  trustedAppUrls = new Set([mainUrl, indicatorUrl]);
 }
 
 function isTrustedAppUrl(url: string): boolean {

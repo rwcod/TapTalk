@@ -26,11 +26,17 @@ const bridge: TapTalkBridge = {
   clearTranscriptHistory: () => ipcRenderer.invoke(IPC_CHANNELS.transcriptsClear),
   listVault: () => ipcRenderer.invoke(IPC_CHANNELS.vaultList),
   readVaultBody: (file) => ipcRenderer.invoke(IPC_CHANNELS.vaultReadBody, file),
+  suggestVaultLinks: (file) => ipcRenderer.invoke(IPC_CHANNELS.vaultSuggestLinks, file),
+  applyVaultLink: (file, targetFile) =>
+    ipcRenderer.invoke(IPC_CHANNELS.vaultApplyLink, file, targetFile),
   openVaultEntry: (file) => ipcRenderer.invoke(IPC_CHANNELS.vaultOpenEntry, file),
   deleteVaultEntry: (file) => ipcRenderer.invoke(IPC_CHANNELS.vaultDelete, file),
   revealVault: () => ipcRenderer.invoke(IPC_CHANNELS.vaultReveal),
   openAccessibilitySettings: () =>
     ipcRenderer.invoke(IPC_CHANNELS.systemOpenAccessibilitySettings),
+  chooseFolder: () => ipcRenderer.invoke(IPC_CHANNELS.systemChooseFolder),
+  getMcpLaunchConfig: (vaultPath) =>
+    ipcRenderer.invoke(IPC_CHANNELS.systemMcpLaunchConfig, vaultPath),
   onStatus: (listener) => {
     const wrapped = (_event: unknown, payload: Parameters<typeof listener>[0]) =>
       listener(payload);
@@ -55,8 +61,6 @@ const bridge: TapTalkBridge = {
   openMicrophone: () => ipcRenderer.invoke(IPC_CHANNELS.systemOpenMicrophone),
   refreshPermissionStatus: () =>
     ipcRenderer.invoke(IPC_CHANNELS.systemRefreshPermissions),
-  notifyWizardCompleted: () => ipcRenderer.invoke(IPC_CHANNELS.wizardCompleted),
-  openWizardWindow: () => ipcRenderer.invoke(IPC_CHANNELS.wizardOpen),
   resizeForView: (view: string) => ipcRenderer.invoke(IPC_CHANNELS.uiResizeForView, view)
 };
 

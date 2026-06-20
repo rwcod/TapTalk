@@ -16,6 +16,8 @@ export type CloudSecretBackend = "safeStorage" | "settings";
 export type ThemePreference = "system" | "light" | "dark";
 
 export type EditProviderKind = "rule-based" | "openai-compatible";
+export type VaultCaptureDestination = "taptalk" | "folder";
+export type VaultKnowledgeSourceKind = "folder" | "obsidian";
 
 export interface EditingConfig {
   /** Enable context-aware selected-text editing (no selection still = dictation). */
@@ -26,6 +28,21 @@ export interface EditingConfig {
   endpoint: string;
   model: string;
   apiKey: string;
+}
+
+export interface VaultKnowledgeSource {
+  id: string;
+  label: string;
+  path: string;
+  enabled: boolean;
+  kind: VaultKnowledgeSourceKind;
+}
+
+export interface VaultConfig {
+  captureDestination: VaultCaptureDestination;
+  captureFolder: string;
+  includeTapTalkVault: boolean;
+  knowledgeSources: VaultKnowledgeSource[];
 }
 
 export interface LocalWhisperCppConfig {
@@ -90,6 +107,7 @@ export interface Settings {
     commandTemplate: string;
   };
   editing: EditingConfig;
+  vault: VaultConfig;
 }
 
 export const DEFAULT_CLOUD_SECRET_BACKEND: CloudSecretBackend = "settings";
@@ -149,5 +167,11 @@ export const DEFAULT_SETTINGS: Settings = {
     endpoint: "",
     model: "",
     apiKey: ""
+  },
+  vault: {
+    captureDestination: "taptalk",
+    captureFolder: "",
+    includeTapTalkVault: true,
+    knowledgeSources: []
   }
 };

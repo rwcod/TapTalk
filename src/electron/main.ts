@@ -10,9 +10,8 @@ import {
   Tray
 } from "electron";
 import path from "node:path";
-import {
-  DictationSessionManager
-} from "../runtime/dictation-session";
+import { mkdirSync } from "node:fs";
+import { DictationSessionManager } from "../runtime/dictation-session";
 import { CLOUD_PRESETS } from "../settings/cloud-presets";
 import {
   prepareLocalWhisper,
@@ -26,15 +25,10 @@ import {
   sanitizePrepareLocalWhisperInput,
   sanitizeProbePythonPath
 } from "./ipc/validators/runtime";
-import {
-  DictationStatusPayload,
-  IPC_EVENTS,
-  PermissionsStatus
-} from "./ipc/contracts";
+import { DictationStatusPayload, IPC_EVENTS, PermissionsStatus } from "./ipc/contracts";
 import { setSafeStorageProvider } from "../settings/secret-store";
 import { getVaultDir } from "../runtime/vault";
 import { CaptureDeps, runCapture } from "./main-capture";
-import { mkdirSync } from "node:fs";
 import { readSettings, updateSettings } from "../settings";
 import {
   appendAndSaveTranscript,
@@ -61,7 +55,6 @@ import { requestQuit as requestQuitFlow } from "./main-lifecycle";
 import {
   createIndicatorWindow as createIndicatorWindowShell,
   createMainWindow as createMainWindowShell,
-  createWizardWindow as createWizardWindowShell,
   positionIndicatorWindow,
   showWindow as showWindowShell
 } from "./main-windows";
@@ -85,6 +78,8 @@ import {
 import { bootstrapMainProcess } from "./main-bootstrap";
 import { mountMainAppShell, prepareSharedProcessUi } from "./main-ready";
 import { detectAppUpdate } from "./main-update-detection";
+import { enableDevRendererReload } from "./main-dev-reload";
+import { getMcpLaunchConfig, isMcpMode, runMcpMode } from "./main-mcp";
 type StatusPayload = DictationStatusPayload;
 const INDICATOR_BAR_COUNT = 5;
 const TRAY_IDLE_ALPHA = 0.72;
@@ -108,15 +103,14 @@ const dictation = new DictationSessionManager({
 
 let mainWindow: BrowserWindow | null = null;
 let indicatorWindow: BrowserWindow | null = null;
-let wizardWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
-let mainShellMounted = false;
 let trayIdleIcon: Electron.NativeImage | null = null;
 let trayActiveIcon: Electron.NativeImage | null = null;
 let appIcon: Electron.NativeImage | null = null;
 let isQuitting = false;
 let forceExitTimer: NodeJS.Timeout | null = null;
 let settingsCache: Settings | null = null;
+let closeDevRendererReload: (() => void) | null = null;
 
 let status: StatusPayload = {
   phase: "idle",
@@ -138,7 +132,8 @@ const captureDeps: CaptureDeps = {
   isIdle: () => status.phase === "idle",
   getPasteHelperPath: () => resolvePasteHelperPath(),
   getEditingConfig: () => (settingsCache ?? DEFAULT_SETTINGS).editing,
-  flashPill: (label) => statusController.flashIndicator(label),
+  getVaultConfig: () => (settingsCache ?? DEFAULT_SETTINGS).vault,
+  flashPill: (label, durationMs) => statusController.flashIndicator(label, durationMs),
   toErrorMessage,
   runSerialized
 };
@@ -339,52 +334,6 @@ function recreateIndicatorWindow(reason: string): void {
   indicatorWindow = createIndicatorWindow();
 }
 
-function createWizardWindow(): BrowserWindow {
-  return createWizardWindowShell({
-    appIcon,
-    hardenWindowNavigation,
-    resolveUiPath,
-    preloadPath: path.resolve(__dirname, "preload.js"),
-    onClosed: () => {
-      wizardWindow = null;
-    }
-  });
-}
-
-function openOrFocusWizardWindow(): void {
-  if (wizardWindow && !wizardWindow.isDestroyed()) {
-    if (wizardWindow.isMinimized()) {
-      wizardWindow.restore();
-    }
-    wizardWindow.show();
-    wizardWindow.focus();
-    return;
-  }
-  wizardWindow = createWizardWindow();
-}
-
-async function handleWizardCompleted(): Promise<void> {
-  const previous = wizardWindow;
-  wizardWindow = null;
-  if (previous && !previous.isDestroyed()) {
-    try {
-      previous.close();
-    } catch (error) {
-      console.error("close wizard window:", error);
-    }
-  }
-
-  if (!mainShellMounted) {
-    try {
-      await mountMainShellWithSideEffects();
-    } catch (error) {
-      console.error("Failed to mount main shell after wizard:", error);
-    }
-  } else {
-    showWindow();
-  }
-}
-
 function registerFallbackShortcuts(settings: Settings): string {
   globalShortcut.unregisterAll();
 
@@ -521,9 +470,6 @@ function registerIpc(): void {
     prepareWhisperCpp: (model, onProgress) => prepareWhisperCpp({ model }, onProgress),
     findOrInstallPython,
     sendSetupProgress: (msg) => {
-      if (wizardWindow && !wizardWindow.isDestroyed()) {
-        wizardWindow.webContents.send(IPC_EVENTS.setupProgress, msg);
-      }
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send(IPC_EVENTS.setupProgress, msg);
       }
@@ -535,6 +481,7 @@ function registerIpc(): void {
     clearTranscriptHistory,
     setStatus,
     openMacPrivacySettings,
+    getMcpLaunchConfig,
     collectPermissionSnapshot,
     askForMicrophoneAccess: () => systemPreferences.askForMediaAccess("microphone"),
     openAccessibilitySettingsUrl: () => shell.openExternal(MAC_ACCESSIBILITY_SETTINGS_URL),
@@ -545,14 +492,13 @@ function registerIpc(): void {
       broadcastStatus();
       return status;
     },
-    onWizardCompleted: handleWizardCompleted,
-    onWizardOpenRequested: openOrFocusWizardWindow,
     resizeMainWindowForView: (view) => {
       if (!mainWindow || mainWindow.isDestroyed()) return;
       const sizes: Record<string, { width: number; height: number }> = {
         dashboard: { width: 744, height: 568 },
         history: { width: 744, height: 568 },
         vault: { width: 880, height: 600 },
+        "vault-preview": { width: 1040, height: 720 },
         settings: { width: 792, height: 632 },
         wizard: { width: 820, height: 600 }
       };
@@ -597,7 +543,7 @@ async function mountMainShellWithSideEffects(): Promise<void> {
     reloadSettingsAndHotkeys,
     broadcastStatus
   });
-  mainShellMounted = true;
+  closeDevRendererReload ??= enableDevRendererReload({ enabled: process.env.TAPTALK_DEV_RELOAD === "1", resolveUiPath });
   showWindow();
 }
 
@@ -646,19 +592,24 @@ function handleAppWillQuit(): void {
     clearTimeout(hotkeyRecoveryTimer);
     hotkeyRecoveryTimer = null;
   }
+  closeDevRendererReload?.(); closeDevRendererReload = null;
   globalShortcut.unregisterAll();
   disableFnKeyListener();
   resetIndicatorBars();
   void dictation.cancel().catch(() => undefined);
 }
 
-bootstrapMainProcess({
-  isQuitting: () => isQuitting,
-  setIsQuitting: (next) => {
-    isQuitting = next;
-  },
-  requestQuit,
-  showWindow,
-  onReady: handleAppReady,
-  onWillQuit: handleAppWillQuit
-});
+if (isMcpMode()) {
+  runMcpMode();
+} else {
+  bootstrapMainProcess({
+    isQuitting: () => isQuitting,
+    setIsQuitting: (next) => {
+      isQuitting = next;
+    },
+    requestQuit,
+    showWindow,
+    onReady: handleAppReady,
+    onWillQuit: handleAppWillQuit
+  });
+}

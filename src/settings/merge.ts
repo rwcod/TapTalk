@@ -132,6 +132,27 @@ function normalizeRecordingCommandTemplate(value: unknown, fallback: string): st
   return template;
 }
 
+function mergeVaultSettings(
+  incoming: Partial<Settings>["vault"],
+  base: Settings["vault"]
+): Settings["vault"] {
+  return {
+    captureDestination:
+      incoming?.captureDestination === "folder" || incoming?.captureDestination === "taptalk"
+        ? incoming.captureDestination
+        : base.captureDestination,
+    captureFolder:
+      typeof incoming?.captureFolder === "string"
+        ? incoming.captureFolder.trim()
+        : base.captureFolder,
+    includeTapTalkVault:
+      incoming?.includeTapTalkVault ?? base.includeTapTalkVault,
+    knowledgeSources: Array.isArray(incoming?.knowledgeSources)
+      ? incoming.knowledgeSources
+      : base.knowledgeSources
+  };
+}
+
 export function mergeSettings(base: Settings, incoming: Partial<Settings>): Settings {
   const mergedCloudPreset = incoming.cloud?.preset ?? base.cloud.preset;
   const mergedCloudUrl = normalizeCloudUrlForMerge(incoming.cloud?.url, base.cloud.url);
@@ -220,6 +241,7 @@ export function mergeSettings(base: Settings, incoming: Partial<Settings>): Sett
       endpoint: normalizeEditEndpointForMerge(incoming.editing?.endpoint, base.editing.endpoint),
       model: incoming.editing?.model ?? base.editing.model,
       apiKey: (incoming.editing?.apiKey ?? base.editing.apiKey).trim()
-    }
+    },
+    vault: mergeVaultSettings(incoming.vault, base.vault)
   };
 }

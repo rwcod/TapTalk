@@ -1,6 +1,6 @@
 {
   "name": "taptalk",
-  "version": "0.4.0",
+  "version": "0.8.0",
   "description": "TapTalk: privacy-first, local-first macOS dictation app with local faster-whisper and optional bring-your-own cloud STT providers",
   "main": "dist/electron/main.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "test": "npm run check:architecture && npm run build && node scripts/run-node-tests.mjs",
     "verify:release": "npm test && npm audit --omit=dev --audit-level=high && npm pack --dry-run --json",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "dev": "tsx src/cli.ts",
+    "dev": "npm run build && TAPTALK_DEV_RELOAD=1 electron dist/electron/main.js",
+    "cli": "tsx src/cli.ts",
     "build": "npm run clean && tsc -p tsconfig.json && npm run build:native",
     "build:native": "node -e \"require('node:fs').mkdirSync('dist/native', { recursive: true })\" && (test \"$(uname)\" != \"Darwin\" || swiftc -O scripts/native/PasteHelper.swift -o dist/native/PasteHelper) && (test \"$(uname)\" != \"Darwin\" || bash scripts/native/build-whisper-cpp.sh)",
     "start": "npm run app",
@@ -30,7 +31,6 @@
     "!dist/*.zip",
     "!dist/*.blockmap",
     "src/electron/index.html",
-    "src/electron/wizard.html",
     "src/electron/indicator.html",
     "src/electron/indicator.js",
     "src/electron/renderer",
@@ -54,6 +54,7 @@
     "typescript": "^5.9.3"
   },
   "bin": {
-    "taptalk": "dist/cli.js"
+    "taptalk": "dist/cli.js",
+    "taptalk-mcp": "dist/mcp/server.js"
   }
 }

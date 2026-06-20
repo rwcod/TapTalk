@@ -5,7 +5,10 @@ import {
   EditProviderKind,
   LocalEngine,
   ProviderMode,
-  Settings
+  Settings,
+  VaultCaptureDestination,
+  VaultKnowledgeSource,
+  VaultKnowledgeSourceKind
 } from "../../../core/types";
 import { ensureSafeCloudHttpProtocol } from "../../../core/url-security";
 import {
@@ -32,7 +35,8 @@ const TOP_LEVEL_SETTINGS_FIELDS = new Set([
   "localFasterWhisper",
   "localWhisperCpp",
   "localEngine",
-  "editing"
+  "editing",
+  "vault"
 ]);
 
 function isProviderMode(value: unknown): value is ProviderMode {
@@ -65,6 +69,62 @@ function isCloudSecretBackend(value: unknown): value is CloudSecretBackend {
 
 function isEditProviderKind(value: unknown): value is EditProviderKind {
   return value === "rule-based" || value === "openai-compatible";
+}
+
+function isVaultCaptureDestination(value: unknown): value is VaultCaptureDestination {
+  return value === "taptalk" || value === "folder";
+}
+
+function isVaultKnowledgeSourceKind(value: unknown): value is VaultKnowledgeSourceKind {
+  return value === "folder" || value === "obsidian";
+}
+
+function sanitizeVaultKnowledgeSources(value: unknown): VaultKnowledgeSource[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error("Invalid vault.knowledgeSources: expected array.");
+  }
+  if (value.length > 16) {
+    throw new Error("Invalid vault.knowledgeSources: too many entries.");
+  }
+
+  const out: VaultKnowledgeSource[] = [];
+  const seen = new Set<string>();
+  for (const [index, raw] of value.entries()) {
+    const source = asRecord(raw);
+    const sourcePath = toOptionalTrimmedString(source.path, "vault.knowledgeSources.path", {
+      maxLength: 4096
+    });
+    if (!sourcePath || seen.has(sourcePath)) {
+      continue;
+    }
+    seen.add(sourcePath);
+    const label = toOptionalTrimmedString(source.label, "vault.knowledgeSources.label", {
+      maxLength: 128,
+      allowEmpty: true
+    });
+    const id = toOptionalTrimmedString(source.id, "vault.knowledgeSources.id", {
+      maxLength: 128,
+      allowEmpty: true
+    });
+    if (source.enabled !== undefined && typeof source.enabled !== "boolean") {
+      throw new Error("Invalid vault.knowledgeSources.enabled.");
+    }
+    if (source.kind !== undefined && !isVaultKnowledgeSourceKind(source.kind)) {
+      throw new Error("Invalid vault.knowledgeSources.kind.");
+    }
+    out.push({
+      id: id || `source-${index + 1}`,
+      label: label || sourcePath.split(/[\\/]/).filter(Boolean).pop() || sourcePath,
+      path: sourcePath,
+      enabled: source.enabled !== false,
+      kind: isVaultKnowledgeSourceKind(source.kind) ? source.kind : "obsidian"
+    });
+  }
+
+  return out;
 }
 
 function sanitizeEditingPatch(value: unknown): Partial<Settings["editing"]> {
@@ -116,6 +176,39 @@ function sanitizeEditingPatch(value: unknown): Partial<Settings["editing"]> {
   });
   if (apiKey !== undefined) {
     out.apiKey = apiKey;
+  }
+
+  return out;
+}
+
+function sanitizeVaultPatch(value: unknown): Partial<Settings["vault"]> {
+  const vault = asRecord(value);
+  const out: Partial<Settings["vault"]> = {};
+
+  if (vault.captureDestination !== undefined) {
+    if (!isVaultCaptureDestination(vault.captureDestination)) {
+      throw new Error("Invalid vault.captureDestination.");
+    }
+    out.captureDestination = vault.captureDestination;
+  }
+
+  const captureFolder = toOptionalTrimmedString(vault.captureFolder, "vault.captureFolder", {
+    maxLength: 4096,
+    allowEmpty: true
+  });
+  if (captureFolder !== undefined) {
+    out.captureFolder = captureFolder;
+  }
+
+  if (vault.includeTapTalkVault !== undefined) {
+    if (typeof vault.includeTapTalkVault !== "boolean") {
+      throw new Error("Invalid vault.includeTapTalkVault.");
+    }
+    out.includeTapTalkVault = vault.includeTapTalkVault;
+  }
+
+  if (vault.knowledgeSources !== undefined) {
+    out.knowledgeSources = sanitizeVaultKnowledgeSources(vault.knowledgeSources);
   }
 
   return out;
@@ -494,6 +587,10 @@ export function sanitizeSettingsPatchFromRenderer(value: unknown): Partial<Setti
 
   if (patch.editing !== undefined) {
     out.editing = sanitizeEditingPatch(patch.editing) as Settings["editing"];
+  }
+
+  if (patch.vault !== undefined) {
+    out.vault = sanitizeVaultPatch(patch.vault) as Settings["vault"];
   }
 
   return out;

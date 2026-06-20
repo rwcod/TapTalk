@@ -61,6 +61,10 @@ html, body {
 .pill[data-phase="transcribing"] { --t-r: 251; --t-g: 191; --t-b: 36;  background: rgba(22, 16, 6, 0.78); }
 .pill[data-phase="editing"]      { --t-r: 167; --t-g: 139; --t-b: 250; background: rgba(15, 11, 24, 0.78); }
 .pill[data-phase="thinking"]     { --t-r: 167; --t-g: 139; --t-b: 250; background: rgba(15, 11, 24, 0.78); }
+.pill[data-phase="saved"]        { gap: 0; padding: 0 18px; }
+.pill[data-phase="saved"] .pill-dot-status,
+.pill[data-phase="saved"] .pill-bars,
+.pill[data-phase="saved"] .pill-timer { display: none; }
 
 /* Content sits above the aurora */
 .pill > :not(.pill-aurora) { position: relative; z-index: 1; }

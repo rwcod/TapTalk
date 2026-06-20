@@ -36,6 +36,7 @@ pnpm-debug.log*
 .claude/
 .vscode/
 .idea/
+.mcp.json
 
 # Local temporary files
 *.swp

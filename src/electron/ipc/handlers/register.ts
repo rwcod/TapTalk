@@ -4,7 +4,6 @@ import { registerSettingsIpcHandlers } from "./settings";
 import { registerSystemIpcHandlers } from "./system";
 import { registerTranscriptIpcHandlers } from "./transcripts";
 import { registerVaultIpcHandlers } from "./vault";
-import { registerWizardIpcHandlers } from "./wizard";
 import { registerUiIpcHandlers } from "./ui";
 import { RegisterIpcDeps } from "./types";
 
@@ -15,6 +14,5 @@ export function registerIpcHandlers(deps: RegisterIpcDeps): void {
   registerTranscriptIpcHandlers(deps);
   registerVaultIpcHandlers(deps);
   registerSystemIpcHandlers(deps);
-  registerWizardIpcHandlers(deps);
   registerUiIpcHandlers(deps);
 }

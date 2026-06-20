@@ -21,6 +21,11 @@ import {
   cloudUrlInput,
   customFields,
   fallbackCheck,
+  vaultCaptureDestinationSelect,
+  vaultCaptureFolderGroup,
+  vaultCaptureFolderInput,
+  vaultIncludeTapTalkCheck,
+  vaultIncludeObsidianCheck,
   editingEnabledCheck,
   editingProviderSelect,
   editingLlmFields,
@@ -60,7 +65,9 @@ import {
   tabGeneralBtn,
   tabGeneralPanel,
   tabLocalBtn,
-  tabLocalPanel
+  tabLocalPanel,
+  tabVaultBtn,
+  tabVaultPanel
 } from "./dom.js";
 import { state } from "./state.js";
 import {
@@ -82,6 +89,13 @@ let saveTimer = null;
 let flashTimer = null;
 
 const THEME_LABELS = { system: "Theme: System", light: "Theme: Light", dark: "Theme: Dark" };
+
+const DEFAULT_VAULT_SETTINGS = {
+  captureDestination: "taptalk",
+  captureFolder: "",
+  includeTapTalkVault: true,
+  knowledgeSources: []
+};
 
 // Keep model dropdowns tolerant of custom/unknown values stored in settings:
 // if the saved model isn't one of the predefined options, inject it so the
@@ -248,11 +262,13 @@ export function renderSettingsTab(tab) {
   tabGeneralBtn.classList.toggle("active", tab === "general");
   tabLocalBtn.classList.toggle("active", tab === "local");
   tabCloudBtn.classList.toggle("active", tab === "cloud");
+  if (tabVaultBtn) tabVaultBtn.classList.toggle("active", tab === "vault");
   if (tabEditingBtn) tabEditingBtn.classList.toggle("active", tab === "editing");
 
   tabGeneralPanel.classList.toggle("hidden", tab !== "general");
   tabLocalPanel.classList.toggle("hidden", tab !== "local");
   tabCloudPanel.classList.toggle("hidden", tab !== "cloud");
+  if (tabVaultPanel) tabVaultPanel.classList.toggle("hidden", tab !== "vault");
   if (tabEditingPanel) tabEditingPanel.classList.toggle("hidden", tab !== "editing");
 }
 
@@ -311,6 +327,7 @@ export function renderSettings(settings) {
   if (showIndicatorCheck) showIndicatorCheck.checked = settings.showIndicator !== false;
   if (launchAtLoginCheck) launchAtLoginCheck.checked = settings.launchAtLogin === true;
   fallbackCheck.checked = settings.fallback.enabled;
+  renderVault(settings);
 
   const active = modelToPreset(settings.localFasterWhisper.model);
   document.querySelectorAll(".preset-btn").forEach((btn) => {
@@ -330,6 +347,75 @@ export function renderSettings(settings) {
   renderCloud(settings);
   renderEditing(settings);
   renderSettingsTab(state.activeSettingsTab || "general");
+}
+
+function vaultSettings(settings) {
+  return settings.vault || DEFAULT_VAULT_SETTINGS;
+}
+
+function pathLabel(value) {
+  return value.split(/[\\/]/).filter(Boolean).pop() || value;
+}
+
+// Obsidian folder is needed when captures go there OR it's an AI context source.
+function vaultNeedsObsidianFolder() {
+  const captureToObsidian = vaultCaptureDestinationSelect?.value === "folder";
+  const contextObsidian = vaultIncludeObsidianCheck?.checked ?? false;
+  return captureToObsidian || contextObsidian;
+}
+
+function renderVault(settings) {
+  const vault = vaultSettings(settings);
+  const knowledgeSources = vault.knowledgeSources || [];
+  const savedPath = vault.captureFolder || knowledgeSources.find((source) => source?.path)?.path || "";
+  if (vaultCaptureDestinationSelect) {
+    vaultCaptureDestinationSelect.value = vault.captureDestination === "folder" ? "folder" : "taptalk";
+  }
+  if (vaultCaptureFolderInput) {
+    vaultCaptureFolderInput.value = savedPath;
+  }
+  if (vaultIncludeTapTalkCheck) {
+    vaultIncludeTapTalkCheck.checked = vault.includeTapTalkVault !== false;
+  }
+  if (vaultIncludeObsidianCheck) {
+    vaultIncludeObsidianCheck.checked = knowledgeSources.some(
+      (source) => source?.path && source?.enabled !== false
+    );
+  }
+  syncVaultFields();
+}
+
+export function syncVaultFields() {
+  if (!vaultCaptureFolderGroup) return;
+  // Demand-driven: the folder field appears when something points at Obsidian.
+  // Hiding never clears the value, so a path given earlier is remembered.
+  vaultCaptureFolderGroup.classList.toggle("hidden", !vaultNeedsObsidianFolder());
+}
+
+function vaultFromInputs() {
+  const current = vaultSettings(state.settings || {});
+  const captureToObsidian = vaultCaptureDestinationSelect?.value === "folder";
+  const contextObsidian = vaultIncludeObsidianCheck?.checked ?? false;
+  const folder = vaultCaptureFolderInput?.value.trim() || "";
+  const existing = (current.knowledgeSources || []).find((source) => source?.path === folder);
+  // One shared folder feeds both capture and context. Keep the source entry
+  // whenever a path exists so it round-trips; `enabled` carries the context flag.
+  const knowledgeSources = folder
+    ? [{
+        id: existing?.id || "obsidian-vault",
+        label: existing?.label || pathLabel(folder),
+        path: folder,
+        enabled: contextObsidian,
+        kind: existing?.kind || "obsidian"
+      }]
+    : [];
+
+  return {
+    captureDestination: captureToObsidian && folder ? "folder" : "taptalk",
+    captureFolder: folder,
+    includeTapTalkVault: vaultIncludeTapTalkCheck ? vaultIncludeTapTalkCheck.checked : true,
+    knowledgeSources
+  };
 }
 
 export function syncEngineSection() {
@@ -516,6 +602,7 @@ export async function doSave() {
     cloudSecretBackend: secretBackendSelect.value === "settings" ? "settings" : "safeStorage",
     fallback: { enabled: fallbackCheck.checked },
     editing: editingFromInputs(),
+    vault: vaultFromInputs(),
     hotkey: profileToHotkey(hotkeyProfileSelect.value),
     cloud,
     localEngine: localEngineSelect ? localEngineSelect.value : undefined,

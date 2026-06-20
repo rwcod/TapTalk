@@ -22,7 +22,7 @@ import {
   wizardWhisperCppGpuCheck,
   revealVaultBtn
 } from "./dom.js";
-import { loadVault } from "./vault-view.js";
+import { loadVault, renderStatusAndRefreshVault } from "./vault-view.js";
 import { mountTaptalkGlyphs } from "./taptalk-glyph.js";
 import { state } from "./state.js";
 import {
@@ -44,13 +44,14 @@ import {
   clampWizardStep,
   renderWizardCloudAdvanced,
   renderWizardModeView,
-  renderWizardPrefsAdvanced,
   renderWizardStepView,
   resetDepChecklist,
   setWizardCloudStatus,
   setWizardEditingStatus,
+  setWizardObsidianStatus,
   setWizardPermStatus,
-  setWizardStatus
+  setWizardStatus,
+  syncWizardObsidianFields
 } from "./wizard/render.js";
 import { createWizardPermissionsController } from "./wizard/permissions.js";
 import { createWizardRuntimeController } from "./wizard/runtime.js";
@@ -90,13 +91,10 @@ function wizardProfileForModel(model) {
 function applyWizardLocalModelProfile(profile) {
   const select = wizardLocalModelPresetSelect;
 
-  // Drop any model option we injected previously so the preset list stays tidy
-  // across repeated calls (e.g. reopening the wizard with a different model).
   Array.from(select.options)
     .filter((opt) => opt.dataset.injected === "1")
     .forEach((opt) => opt.remove());
 
-  // Known size preset: apply it and write the matching model name.
   if (Object.hasOwn(WIZARD_LOCAL_MODEL_PROFILES, profile) && profile !== "custom") {
     const config = WIZARD_LOCAL_MODEL_PROFILES[profile];
     select.value = profile;
@@ -105,9 +103,6 @@ function applyWizardLocalModelProfile(profile) {
     return;
   }
 
-  // Unknown/custom model (typically chosen in the Settings panel). Preserve the
-  // actual model value instead of silently resetting it, and reflect it in the
-  // dropdown by injecting it as a selected option.
   const model = wizardLocalModelInput.value.trim();
   if (!model) {
     const config = WIZARD_LOCAL_MODEL_PROFILES.balanced;
@@ -165,6 +160,7 @@ const {
   populateLanguageSelect,
   renderWizardCloudAdvanced,
   renderWizardMode,
+  syncWizardObsidianFields,
   state,
   wizardMode,
   wizardState
@@ -324,8 +320,10 @@ const {
   runSaveLocalChecks,
   setWizardCloudStatus,
   setWizardEditingStatus,
+  setWizardObsidianStatus,
   setWizardPermStatus,
   setWizardStatus,
+  syncWizardObsidianFields,
   state,
   stopPermissionPolling,
   userFacingErrorMessage: (error) => {
@@ -367,7 +365,6 @@ bindRendererEvents({
   renderStatus,
   renderWizardCloudAdvanced,
   renderWizardMode,
-  renderWizardPrefsAdvanced,
   renderWizardStep,
   requestMicrophonePermission,
   resetOnboardingFlow,
@@ -420,7 +417,7 @@ void initializeRenderer({
   rebuildPresetOptions,
   renderRecentTranscripts,
   renderSettings,
-  renderStatus,
+  renderStatus: renderStatusAndRefreshVault,
   renderWizardStep,
   setWizardPermStatus,
   wizardMode

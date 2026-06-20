@@ -9,8 +9,9 @@ import type {
 import type { Settings } from "../../core/types";
 import type { TranscriptEntry } from "../../runtime/transcript-history";
 import type { VaultEntry } from "../../runtime/vault";
+import type { VaultLinkSuggestion } from "../../runtime/vault-links";
 
-export type { VaultEntry };
+export type { VaultEntry, VaultLinkSuggestion };
 
 export type DictationPhase = "idle" | "starting" | "recording" | "transcribing" | "editing" | "thinking";
 export type DictationMode = "dictation" | "edit";
@@ -61,6 +62,12 @@ export type IndicatorStatusPayload = {
   label?: string;
 };
 
+export interface McpLaunchConfig {
+  name: string;
+  command: string;
+  args: string[];
+}
+
 export interface TapTalkBridge {
   getSettings(): Promise<Settings>;
   getCloudPresets(): Promise<Record<string, CloudPresetDefinition>>;
@@ -77,10 +84,14 @@ export interface TapTalkBridge {
   clearTranscriptHistory(): Promise<DictationStatusPayload>;
   listVault(): Promise<VaultEntry[]>;
   readVaultBody(file: string): Promise<string | null>;
+  suggestVaultLinks(file: string): Promise<VaultLinkSuggestion[]>;
+  applyVaultLink(file: string, targetFile: string): Promise<boolean>;
   openVaultEntry(file: string): Promise<void>;
   deleteVaultEntry(file: string): Promise<boolean>;
   revealVault(): Promise<void>;
   openAccessibilitySettings(): Promise<boolean>;
+  chooseFolder(): Promise<string | null>;
+  getMcpLaunchConfig(vaultPath?: string): Promise<McpLaunchConfig>;
   onStatus(listener: (payload: DictationStatusPayload) => void): () => void;
   findOrInstallPython(): Promise<string>;
   onSetupProgress(listener: (msg: string) => void): () => void;
@@ -90,8 +101,6 @@ export interface TapTalkBridge {
   openInputMonitoring(): Promise<boolean>;
   openMicrophone(): Promise<boolean>;
   refreshPermissionStatus(): Promise<DictationStatusPayload>;
-  notifyWizardCompleted(): Promise<void>;
-  openWizardWindow(): Promise<void>;
   resizeForView(view: string): Promise<void>;
 }
 
@@ -116,20 +125,21 @@ export const IPC_CHANNELS = {
 
   vaultList: "vault:list",
   vaultReadBody: "vault:read-body",
+  vaultSuggestLinks: "vault:suggest-links",
+  vaultApplyLink: "vault:apply-link",
   vaultOpenEntry: "vault:open-entry",
   vaultDelete: "vault:delete",
   vaultReveal: "vault:reveal",
 
   systemOpenAccessibilitySettings: "system:open-accessibility-settings",
+  systemChooseFolder: "system:choose-folder",
+  systemMcpLaunchConfig: "system:mcp-launch-config",
   systemCheckPermissions: "system:check-permissions",
   systemRequestMicrophone: "system:request-microphone",
   systemOpenAccessibility: "system:open-accessibility",
   systemOpenInputMonitoring: "system:open-input-monitoring",
   systemOpenMicrophone: "system:open-microphone",
   systemRefreshPermissions: "system:refresh-permissions",
-
-  wizardCompleted: "wizard:completed",
-  wizardOpen: "wizard:open",
 
   uiResizeForView: "ui:resize-for-view"
 } as const;

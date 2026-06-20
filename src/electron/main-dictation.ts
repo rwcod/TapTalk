@@ -285,7 +285,7 @@ export function createDictationController(deps: DictationControllerDeps): Dictat
   }
 
   async function loadRecentTranscriptsAtStartup(): Promise<void> {
-    // Reconcile any tagged notes still in the inbox into their tag folders.
+    // Reconcile legacy tag-folder/inbox notes into the Obsidian-friendly notes folder.
     void organizeInbox().catch(() => undefined);
     try {
       const recentTranscripts = await deps.readTranscriptHistory();

@@ -2,7 +2,6 @@ export const wizardState = {
   busy: false,
   step: 1,
   cloudAdvancedOpen: false,
-  prefsAdvancedOpen: false,
   permAutoAdvanced: false,
   cloudPresetCurrent: "groq",
   cloudApiKeys: {},
@@ -12,7 +11,7 @@ export const wizardState = {
   maxStepReached: 1
 };
 
-export const WIZARD_STEP_COUNT = 4;
+export const WIZARD_STEP_COUNT = 5;
 export const WIZARD_DRAFT_STORAGE_KEY = "taptalk.setupWizardDraft.v1";
 
 export const WIZARD_LOCAL_MODEL_PROFILES = {

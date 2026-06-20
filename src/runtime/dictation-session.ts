@@ -283,7 +283,10 @@ export class DictationSessionManager {
           contentType: "unknown"
         },
         session.settings.editing,
-        { retrieveContext: (cmd, sel) => retrieveVaultContext(cmd, sel, session.settings.editing) }
+        {
+          retrieveContext: (cmd, sel) =>
+            retrieveVaultContext(cmd, sel, session.settings.editing, session.settings.vault)
+        }
       );
 
       try {

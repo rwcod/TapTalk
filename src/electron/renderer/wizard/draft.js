@@ -21,10 +21,13 @@ import {
   wizardLanguageSelect,
   wizardLocalModelInput,
   wizardLocalModelPresetSelect,
+  wizardObsidianFolderInput,
   wizardPrepareOnSaveCheck,
   wizardSecretBackendSelect,
   wizardPythonPathInput,
   wizardEngineSelect,
+  wizardUseObsidianCheck,
+  wizardCaptureDestinationSelect,
   wizardWhisperCppGpuCheck
 } from "./dom.js";
 
@@ -37,6 +40,7 @@ export function createWizardDraftController({
   populateLanguageSelect,
   renderWizardCloudAdvanced,
   renderWizardMode,
+  syncWizardObsidianFields,
   syncWizardEditingFields,
   state,
   wizardMode,
@@ -96,7 +100,6 @@ export function createWizardDraftController({
         cloudPreset: wizardCloudPresetSelect.value || wizardState.cloudPresetCurrent,
         cloudModel: wizardCloudModelInput.value.trim(),
         cloudAdvancedOpen: wizardState.cloudAdvancedOpen,
-        prefsAdvancedOpen: wizardState.prefsAdvancedOpen,
         cloudUrl: wizardCloudUrlInput.value.trim(),
         cloudAuthHeader: wizardCloudAuthHeaderInput.value.trim(),
         cloudAuthValueTemplate: wizardCloudAuthValueInput.value.trim(),
@@ -108,6 +111,9 @@ export function createWizardDraftController({
         cloudTextFieldHints: wizardCloudTextFieldHintsInput.value.trim(),
         language: wizardLanguageSelect.value,
         languageIncludeEnglish: wizardLanguageIncludeEnglishCheck.checked,
+        useObsidian: wizardUseObsidianCheck ? wizardUseObsidianCheck.checked : false,
+        obsidianFolder: wizardObsidianFolderInput ? wizardObsidianFolderInput.value.trim() : "",
+        captureDestination: wizardCaptureDestinationSelect ? wizardCaptureDestinationSelect.value : "taptalk",
         cloudSecretBackend:
           wizardSecretBackendSelect.value === "safeStorage" ? "safeStorage" : "settings",
         autoPaste: wizardAutopasteCheck.checked,
@@ -187,10 +193,6 @@ export function createWizardDraftController({
       wizardState.cloudAdvancedOpen = draft.cloudAdvancedOpen;
     }
 
-    if (typeof draft.prefsAdvancedOpen === "boolean") {
-      wizardState.prefsAdvancedOpen = draft.prefsAdvancedOpen;
-    }
-
     if (typeof draft.cloudUrl === "string") {
       wizardCloudUrlInput.value = draft.cloudUrl;
     }
@@ -234,6 +236,16 @@ export function createWizardDraftController({
     if (typeof draft.autoPaste === "boolean") {
       wizardAutopasteCheck.checked = draft.autoPaste;
     }
+    if (typeof draft.useObsidian === "boolean" && wizardUseObsidianCheck) {
+      wizardUseObsidianCheck.checked = draft.useObsidian;
+    }
+    if (typeof draft.obsidianFolder === "string" && wizardObsidianFolderInput) {
+      wizardObsidianFolderInput.value = draft.obsidianFolder;
+    }
+    if ((draft.captureDestination === "taptalk" || draft.captureDestination === "folder") && wizardCaptureDestinationSelect) {
+      wizardCaptureDestinationSelect.value = draft.captureDestination;
+    }
+    syncWizardObsidianFields?.();
     if (typeof draft.editingEnabled === "boolean" && wizardEditingEnabledCheck) {
       wizardEditingEnabledCheck.checked = draft.editingEnabled;
     }

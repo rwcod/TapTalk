@@ -22,12 +22,15 @@ import {
   wizardLanguageIncludeEnglishCheck,
   wizardLanguageSelect,
   wizardLocalModelInput,
+  wizardObsidianFolderInput,
   wizardPrepareOnSaveCheck,
   wizardSecretBackendSelect,
   wizardPythonPathInput,
   wizardWhisperCppGpuCheck,
   wizardEngineSelect,
-  wizardSkipBtn
+  wizardSkipBtn,
+  wizardUseObsidianCheck,
+  wizardCaptureDestinationSelect
 } from "./dom.js";
 
 export function createWizardFlowController({
@@ -57,8 +60,10 @@ export function createWizardFlowController({
   runSaveLocalChecks,
   setWizardCloudStatus,
   setWizardEditingStatus,
+  setWizardObsidianStatus,
   setWizardPermStatus,
   setWizardStatus,
+  syncWizardObsidianFields,
   state,
   stopPermissionPolling,
   userFacingErrorMessage,
@@ -91,6 +96,72 @@ export function createWizardFlowController({
     }
     if (!isLocalEditEndpoint(editing.endpoint) && !editing.apiKey.trim()) {
       return "Remote edit endpoints require an API key.";
+    }
+    return null;
+  }
+
+  function pathLabel(value) {
+    return value.split(/[\\/]/).filter(Boolean).pop() || value;
+  }
+
+  function wizardObsidianPathFromSettings(settings) {
+    const vault = settings.vault || {};
+    const knowledgeSources = Array.isArray(vault.knowledgeSources) ? vault.knowledgeSources : [];
+    return knowledgeSources.find((source) => source?.path)?.path || vault.captureFolder || "";
+  }
+
+  // wizardUseObsidianCheck is the "use Obsidian notes as AI context" toggle.
+  function wizardObsidianIsContext(settings) {
+    const vault = settings.vault || {};
+    const knowledgeSources = Array.isArray(vault.knowledgeSources) ? vault.knowledgeSources : [];
+    return knowledgeSources.some((source) => source?.path && source?.enabled !== false);
+  }
+
+  function wizardObsidianCaptureDestination(settings) {
+    const vault = settings.vault || {};
+    return vault.captureDestination === "folder" ? "folder" : "taptalk";
+  }
+
+  function wizardNeedsObsidianFolder() {
+    return (
+      wizardCaptureDestinationSelect?.value === "folder" ||
+      (wizardUseObsidianCheck?.checked ?? false)
+    );
+  }
+
+  function vaultFromWizardInputs(current) {
+    const currentVault = current.vault || {};
+    const captureToObsidian = wizardCaptureDestinationSelect?.value === "folder";
+    const contextObsidian = wizardUseObsidianCheck ? wizardUseObsidianCheck.checked : false;
+    const folder = wizardObsidianFolderInput?.value.trim() || "";
+    const existing = (currentVault.knowledgeSources || []).find(
+      (source) => source?.path === folder
+    );
+    const knowledgeSources = folder
+      ? [{
+          id: existing?.id || "obsidian-vault",
+          label: existing?.label || pathLabel(folder),
+          path: folder,
+          enabled: contextObsidian,
+          kind: existing?.kind || "obsidian"
+        }]
+      : [];
+
+    return {
+      captureDestination: captureToObsidian && folder ? "folder" : "taptalk",
+      captureFolder: folder,
+      includeTapTalkVault: currentVault.includeTapTalkVault !== false,
+      knowledgeSources
+    };
+  }
+
+  function validateWizardObsidian() {
+    if (!wizardNeedsObsidianFolder()) {
+      setWizardObsidianStatus("");
+      return null;
+    }
+    if (!wizardObsidianFolderInput?.value.trim()) {
+      return "Choose your Obsidian folder first.";
     }
     return null;
   }
@@ -138,7 +209,6 @@ export function createWizardFlowController({
       apiKeys: wizardState.cloudApiKeys
     });
     wizardState.cloudAdvancedOpen = false;
-    wizardState.prefsAdvancedOpen = false;
     wizardState.permAutoAdvanced = false;
     wizardState.maxStepReached = 1;
     renderWizardCloudAdvanced();
@@ -147,6 +217,16 @@ export function createWizardFlowController({
     wizardSecretBackendSelect.value =
       settings.cloudSecretBackend === "safeStorage" ? "safeStorage" : "settings";
     wizardAutopasteCheck.checked = !!settings.autoPaste;
+    if (wizardUseObsidianCheck) {
+      wizardUseObsidianCheck.checked = wizardObsidianIsContext(settings);
+    }
+    if (wizardObsidianFolderInput) {
+      wizardObsidianFolderInput.value = wizardObsidianPathFromSettings(settings);
+    }
+    if (wizardCaptureDestinationSelect) {
+      wizardCaptureDestinationSelect.value = wizardObsidianCaptureDestination(settings);
+    }
+    syncWizardObsidianFields();
     const editing = settings.editing || {};
     if (wizardEditingEnabledCheck) wizardEditingEnabledCheck.checked = editing.enabled !== false;
     if (wizardEditingProviderSelect) {
@@ -172,6 +252,7 @@ export function createWizardFlowController({
     setWizardStatus("");
     setWizardCloudStatus("");
     setWizardEditingStatus("");
+    setWizardObsidianStatus("");
     setWizardPermStatus("");
     void window.tapTalk?.resizeForView?.("wizard");
     setupWizard.classList.remove("hidden");
@@ -323,11 +404,19 @@ export function createWizardFlowController({
 
     const editingError = validateWizardEditing(editing);
     if (editingError) {
-      renderWizardStep(4);
+      renderWizardStep(5);
       setWizardEditingStatus(editingError, "error");
       return;
     }
     setWizardEditingStatus("");
+
+    const obsidianError = validateWizardObsidian();
+    if (obsidianError) {
+      renderWizardStep(4);
+      setWizardObsidianStatus(obsidianError, "error");
+      return;
+    }
+    setWizardObsidianStatus("");
 
     setWizardCloudStatus("");
 
@@ -355,6 +444,7 @@ export function createWizardFlowController({
         mode,
         localEngine: mode === "local" ? engine : current.localEngine,
         autoPaste: wizardAutopasteCheck.checked,
+        vault: vaultFromWizardInputs(current),
         cloudSecretBackend:
           wizardSecretBackendSelect.value === "safeStorage" ? "safeStorage" : "settings",
         editing,

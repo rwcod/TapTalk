@@ -1,5 +1,5 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   Shared UI components — used by index.html and wizard.html.
+   Shared UI components — used by index.html (main window + in-window wizard).
    Glass surfaces · emerald accent · spring micro-interactions.
    ─────────────────────────────────────────────────────────────────────────── */
 
@@ -183,6 +183,9 @@
 }
 
 .key-row { display: flex; align-items: center; gap: 8px; }
+.path-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.path-row input { flex: 1; min-width: 0; }
+.path-row .secondary-btn { flex-shrink: 0; }
 
 .secondary-btn {
   -webkit-app-region: no-drag;

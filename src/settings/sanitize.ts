@@ -7,7 +7,10 @@ import {
   EditProviderKind,
   LocalEngine,
   ProviderMode,
-  Settings
+  Settings,
+  VaultCaptureDestination,
+  VaultKnowledgeSource,
+  VaultKnowledgeSourceKind
 } from "../core/types";
 import { ensureSafeCloudHttpProtocol } from "../core/url-security";
 import {
@@ -78,6 +81,52 @@ function isCloudSecretBackend(value: unknown): value is CloudSecretBackend {
 
 function isEditProviderKind(value: unknown): value is EditProviderKind {
   return value === "rule-based" || value === "openai-compatible";
+}
+
+function isVaultCaptureDestination(value: unknown): value is VaultCaptureDestination {
+  return value === "taptalk" || value === "folder";
+}
+
+function isVaultKnowledgeSourceKind(value: unknown): value is VaultKnowledgeSourceKind {
+  return value === "folder" || value === "obsidian";
+}
+
+function pathLabel(value: string): string {
+  return value.split(/[\\/]/).filter(Boolean).pop() || value;
+}
+
+function sanitizeVaultKnowledgeSources(value: unknown): VaultKnowledgeSource[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const out: VaultKnowledgeSource[] = [];
+  const seen = new Set<string>();
+  for (const [index, raw] of value.entries()) {
+    if (out.length >= 16 || !isObject(raw) || typeof raw.path !== "string") {
+      continue;
+    }
+    const sourcePath = raw.path.trim();
+    if (!sourcePath || sourcePath.length > 4096 || seen.has(sourcePath)) {
+      continue;
+    }
+    seen.add(sourcePath);
+    const label =
+      typeof raw.label === "string" && raw.label.trim()
+        ? raw.label.trim().slice(0, 128)
+        : pathLabel(sourcePath).slice(0, 128);
+    out.push({
+      id:
+        typeof raw.id === "string" && raw.id.trim()
+          ? raw.id.trim().slice(0, 128)
+          : `source-${index + 1}`,
+      label,
+      path: sourcePath,
+      enabled: typeof raw.enabled === "boolean" ? raw.enabled : true,
+      kind: isVaultKnowledgeSourceKind(raw.kind) ? raw.kind : "obsidian"
+    });
+  }
+  return out;
 }
 
 function normalizeEditEndpoint(value: unknown, fallback: string): string {
@@ -334,6 +383,23 @@ export function sanitizeLoadedSettings(value: unknown): Partial<Settings> {
         typeof value.editing.apiKey === "string"
           ? value.editing.apiKey
           : DEFAULT_SETTINGS.editing.apiKey
+    };
+  }
+
+  if (isObject(value.vault)) {
+    out.vault = {
+      captureDestination: isVaultCaptureDestination(value.vault.captureDestination)
+        ? value.vault.captureDestination
+        : DEFAULT_SETTINGS.vault.captureDestination,
+      captureFolder:
+        typeof value.vault.captureFolder === "string"
+          ? value.vault.captureFolder.trim().slice(0, 4096)
+          : DEFAULT_SETTINGS.vault.captureFolder,
+      includeTapTalkVault:
+        typeof value.vault.includeTapTalkVault === "boolean"
+          ? value.vault.includeTapTalkVault
+          : DEFAULT_SETTINGS.vault.includeTapTalkVault,
+      knowledgeSources: sanitizeVaultKnowledgeSources(value.vault.knowledgeSources)
     };
   }
 

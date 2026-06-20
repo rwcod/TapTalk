@@ -7,7 +7,7 @@ import {
   parseChatEndpoint,
   requestChatCompletion
 } from "./command-edit/chat-completion";
-import { fileNoteUnderTag, getInboxDir, writeFolderIndexes } from "./vault";
+import { getInboxDir, getNotesDir, migrateLegacyVaultToNotes } from "./vault";
 
 // Closed vocabulary — the LLM may only pick from this. Free tagging produces a
 // messy synonym soup ("auth"/"login"/"oauth") that hurts the grep retrieval
@@ -65,40 +65,51 @@ export interface TagInboxResult {
   skipped: number;
 }
 
-/**
- * Move any already-tagged note still sitting in the inbox into vault/<tag>/.
- * No LLM — reconciles notes tagged before folder-filing existed, and runs on
- * startup so the inbox only ever holds untagged staging. Returns count moved.
- */
 export async function organizeInbox(): Promise<number> {
-  const inbox = getInboxDir();
-  let names: string[];
+  return migrateLegacyVaultToNotes();
+}
+
+export type TagNoteResult = "ignored" | "tagged" | "skipped";
+
+export async function tagNoteFile(
+  filePath: string,
+  config: EditingConfig,
+  deps: ChatRequestDeps = {}
+): Promise<TagNoteResult> {
+  if (config.provider !== "openai-compatible") {
+    return "ignored";
+  }
+  const url = parseChatEndpoint(config.endpoint, "editing.endpoint");
+  if (!url || !config.model.trim()) {
+    return "ignored";
+  }
+
+  let content: string;
   try {
-    names = (await readdir(inbox)).filter((name) => name.endsWith(".md"));
+    content = await readFile(filePath, "utf8");
   } catch {
-    return 0;
+    return "ignored";
   }
-  let moved = 0;
-  for (const name of names) {
-    const filePath = path.join(inbox, name);
-    try {
-      const content = await readFile(filePath, "utf8");
-      const match = content.match(/\ntags: \[([^\]]*)\]/);
-      const tags = match ? match[1].split(",").map((t) => t.trim()).filter(Boolean) : [];
-      if (tags.length > 0) {
-        await fileNoteUnderTag(filePath, tags[0]);
-        moved += 1;
-      }
-    } catch {
-      // skip unreadable
+  if (!isUntagged(content)) {
+    return "ignored";
+  }
+
+  const body = content.split(/\n---\n/).slice(1).join("\n---\n").trim() || content;
+  try {
+    const raw = await requestChatCompletion(url, config, buildTagMessages(body), deps);
+    const tags = parseTags(raw);
+    if (tags.length === 0) {
+      return "skipped";
     }
+    await writeFile(filePath, applyTags(content, tags), { mode: 0o600 });
+    return "tagged";
+  } catch {
+    return "skipped";
   }
-  await writeFolderIndexes().catch(() => undefined);
-  return moved;
 }
 
 /**
- * Background pass: tag every untagged inbox note via the configured edit LLM.
+ * Background pass: tag every untagged TapTalk note via the configured edit LLM.
  * Best-effort — a note that fails (provider down, empty result) keeps its empty
  * tags and is retried on the next run. Only runs when an OpenAI-compatible edit
  * provider is configured; rule-based editing has no LLM to classify with.
@@ -111,50 +122,26 @@ export async function tagInbox(
   deps: ChatRequestDeps = {}
 ): Promise<TagInboxResult> {
   const result: TagInboxResult = { scanned: 0, tagged: 0, skipped: 0 };
-
-  if (config.provider !== "openai-compatible") {
-    return result;
-  }
-  const url = parseChatEndpoint(config.endpoint, "editing.endpoint");
-  if (!url || !config.model.trim()) {
-    return result;
-  }
-
-  const inbox = getInboxDir();
-  let entries: string[];
-  try {
-    entries = (await readdir(inbox)).filter((name) => name.endsWith(".md"));
-  } catch {
-    return result; // no inbox yet
-  }
-
-  for (const name of entries) {
-    const filePath = path.join(inbox, name);
-    let content: string;
+  const roots = [getNotesDir(), getInboxDir()];
+  const entries: string[] = [];
+  for (const root of roots) {
     try {
-      content = await readFile(filePath, "utf8");
+      entries.push(...(await readdir(root)).filter((name) => name.endsWith(".md")).map((name) => path.join(root, name)));
     } catch {
-      continue;
+      // root may not exist yet
     }
-    if (!isUntagged(content)) {
-      continue;
-    }
+  }
 
+  for (const filePath of entries) {
+    const tagged = await tagNoteFile(filePath, config, deps);
+    if (tagged === "ignored") {
+      continue;
+    }
     result.scanned += 1;
-    const body = content.split(/\n---\n/).slice(1).join("\n---\n").trim() || content;
-    try {
-      const raw = await requestChatCompletion(url, config, buildTagMessages(body), deps);
-      const tags = parseTags(raw);
-      if (tags.length === 0) {
-        result.skipped += 1;
-        continue;
-      }
-      await writeFile(filePath, applyTags(content, tags), { mode: 0o600 });
-      // Organize: move the now-tagged note out of the inbox into vault/<tag>/.
-      await fileNoteUnderTag(filePath, tags[0]).catch(() => undefined);
+    if (tagged === "tagged") {
       result.tagged += 1;
-    } catch {
-      result.skipped += 1; // provider failure — retried next run
+    } else {
+      result.skipped += 1;
     }
   }
 

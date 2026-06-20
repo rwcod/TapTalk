@@ -1,9 +1,12 @@
 import { vaultList, vaultSearch, vaultTags, vaultDetail } from "./dom.js";
+import { renderStatus } from "./status-view.js";
 
 let allEntries = [];
 let activeTag = null;
 let query = "";
 let selectedFile = null;
+let openLinkPreviewFile = null;
+let lastVaultRefreshKey = "";
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
@@ -182,6 +185,7 @@ function showContextMenu(x, y, entry) {
     }
     if (selectedFile === entry.file && vaultDetail) {
       selectedFile = null;
+      removeLinkPreviewSurface();
       vaultDetail.innerHTML = '<div class="vault-detail-empty">Select a note to preview it.</div>';
     }
     await loadVault();
@@ -196,8 +200,165 @@ function showContextMenu(x, y, entry) {
   }, 0);
 }
 
+function vaultStage() {
+  return vaultDetail?.closest(".stage-vault") || null;
+}
+
+function clearLinkPreview(resize = true) {
+  openLinkPreviewFile = null;
+  const stage = vaultStage();
+  stage?.classList.remove("stage-vault--link-preview");
+  const preview = stage?.querySelector(":scope > .vault-link-preview");
+  if (preview) {
+    preview.innerHTML = "";
+    preview.onkeydown = null;
+    delete preview.dataset.file;
+  }
+  document.querySelectorAll(".vault-link-suggestion.active").forEach((item) => {
+    item.classList.remove("active");
+    item.setAttribute("aria-pressed", "false");
+  });
+  if (resize) void window.tapTalk?.resizeForView?.("vault");
+}
+
+function removeLinkPreviewSurface() {
+  openLinkPreviewFile = null;
+  const stage = vaultStage();
+  stage?.classList.remove("stage-vault--link-preview");
+  stage?.querySelectorAll(":scope > .vault-link-preview").forEach((item) => item.remove());
+}
+
+function createLinkPreviewSurface() {
+  const stage = vaultStage();
+  if (!stage) return null;
+  stage.querySelectorAll(":scope > .vault-link-preview").forEach((item) => item.remove());
+  const preview = document.createElement("section");
+  preview.className = "vault-link-preview";
+  preview.setAttribute("aria-label", "Suggested link preview");
+  stage.appendChild(preview);
+  return preview;
+}
+
+function renderLinkPreview(container, currentEntry, suggestion, onApplied, onClose) {
+  if (!container) return;
+  container.dataset.file = suggestion.file;
+  container.onkeydown = (event) => {
+    if (event.key === "Escape") onClose();
+  };
+  container.innerHTML = '<div class="vault-link-suggestions-empty">Loading preview…</div>';
+  void (async () => {
+    let body = "";
+    try {
+      body = (await window.tapTalk?.readVaultBody?.(suggestion.file)) || "";
+    } catch {
+      body = suggestion.excerpt || "";
+    }
+    if (container.dataset.file !== suggestion.file) return;
+
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "vault-link-preview-pill vault-link-preview-back";
+    back.textContent = "↩ Back";
+    back.setAttribute("aria-label", "Close preview");
+    back.addEventListener("click", onClose);
+
+    const head = document.createElement("div");
+    head.className = "vault-link-preview-head";
+
+    const titleBlock = document.createElement("div");
+    titleBlock.className = "vault-link-preview-title-block";
+
+    const title = document.createElement("div");
+    title.className = "vault-link-preview-title";
+    title.textContent = suggestion.title;
+
+    const link = document.createElement("div");
+    link.className = "vault-link-preview-link";
+    link.textContent = suggestion.wikilink;
+    titleBlock.appendChild(title);
+    titleBlock.appendChild(link);
+
+    const apply = document.createElement("button");
+    apply.type = "button";
+    apply.className = "vault-link-preview-pill vault-link-preview-apply";
+    apply.textContent = "✓ Link";
+    apply.setAttribute("aria-label", "Apply link");
+    apply.addEventListener("click", async () => {
+      apply.disabled = true;
+      apply.textContent = "Linking…";
+      const ok = await window.tapTalk?.applyVaultLink?.(currentEntry.file, suggestion.file);
+      apply.textContent = ok ? "✓ Linked" : "Failed";
+      if (ok) await onApplied();
+    });
+    head.appendChild(titleBlock);
+
+    const preview = document.createElement("article");
+    preview.className = "vault-link-preview-body vault-md";
+    preview.innerHTML = renderMarkdown(body || suggestion.excerpt);
+
+    const actions = document.createElement("div");
+    actions.className = "vault-link-preview-actions";
+    actions.appendChild(back);
+    actions.appendChild(apply);
+
+    container.innerHTML = "";
+    container.appendChild(head);
+    container.appendChild(preview);
+    container.appendChild(actions);
+    back.focus();
+  })();
+}
+
+function renderLinkSuggestions(container, preview, currentEntry, suggestions, onApplied) {
+  container.innerHTML = "";
+  clearLinkPreview(false);
+  if (!preview) return;
+  if (suggestions.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "vault-link-suggestions-empty";
+    empty.textContent = "No link candidates.";
+    container.appendChild(empty);
+    return;
+  }
+
+  for (const suggestion of suggestions) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "vault-link-suggestion";
+    btn.title = "Preview link candidate";
+    btn.setAttribute("aria-pressed", "false");
+
+    const title = document.createElement("span");
+    title.className = "vault-link-suggestion-title";
+    title.textContent = suggestion.title;
+    btn.appendChild(title);
+
+    const link = document.createElement("span");
+    link.className = "vault-link-suggestion-link";
+    link.textContent = suggestion.wikilink;
+    btn.appendChild(link);
+
+    btn.addEventListener("click", () => {
+      if (openLinkPreviewFile === suggestion.file) {
+        clearLinkPreview();
+        return;
+      }
+      openLinkPreviewFile = suggestion.file;
+      vaultStage()?.classList.add("stage-vault--link-preview");
+      void window.tapTalk?.resizeForView?.("vault-preview");
+      container.querySelectorAll(".vault-link-suggestion").forEach((item) => {
+        item.classList.toggle("active", item === btn);
+        item.setAttribute("aria-pressed", item === btn ? "true" : "false");
+      });
+      renderLinkPreview(preview, currentEntry, suggestion, onApplied, () => clearLinkPreview());
+    });
+    container.appendChild(btn);
+  }
+}
+
 async function selectNote(entry) {
   selectedFile = entry.file;
+  removeLinkPreviewSurface();
   renderList();
   if (!vaultDetail) return;
   vaultDetail.innerHTML = '<div class="vault-detail-empty">Loading…</div>';
@@ -219,12 +380,67 @@ async function selectNote(entry) {
     .filter(Boolean)
     .join("  ·  ");
   head.appendChild(meta);
+  const actions = document.createElement("div");
+  actions.className = "vault-detail-actions";
+
   const open = document.createElement("button");
   open.type = "button";
   open.className = "vault-detail-open";
   open.textContent = "Open in editor";
   open.addEventListener("click", () => window.tapTalk?.openVaultEntry?.(entry.file));
-  head.appendChild(open);
+  actions.appendChild(open);
+
+  const suggest = document.createElement("button");
+  suggest.type = "button";
+  suggest.className = "vault-detail-open";
+  suggest.textContent = "Suggest links";
+  suggest.setAttribute("aria-expanded", "false");
+  actions.appendChild(suggest);
+  head.appendChild(actions);
+
+  const suggestions = document.createElement("div");
+  suggestions.id = "vaultLinkSuggestions";
+  suggestions.className = "vault-link-suggestions";
+  suggestions.hidden = true;
+  suggest.setAttribute("aria-controls", suggestions.id);
+  const linkPreview = createLinkPreviewSurface();
+  let suggestionsOpen = false;
+  let suggestionsLoaded = false;
+  const setSuggestionsOpen = (open) => {
+    suggestionsOpen = open;
+    suggestions.hidden = !open;
+    suggest.setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) clearLinkPreview();
+  };
+  suggest.addEventListener("click", async () => {
+    if (suggestionsOpen) {
+      setSuggestionsOpen(false);
+      return;
+    }
+    setSuggestionsOpen(true);
+    if (suggestionsLoaded) return;
+    suggest.disabled = true;
+    suggest.textContent = "Suggesting…";
+    try {
+      renderLinkSuggestions(
+        suggestions,
+        linkPreview,
+        entry,
+        await window.tapTalk?.suggestVaultLinks?.(entry.file) || [],
+        async () => {
+          body = (await window.tapTalk?.readVaultBody?.(entry.file)) || body;
+          article.innerHTML = renderMarkdown(body);
+        }
+      );
+      suggestionsLoaded = true;
+    } catch {
+      renderLinkSuggestions(suggestions, linkPreview, entry, [], async () => undefined);
+      suggestionsLoaded = true;
+    } finally {
+      suggest.disabled = false;
+      suggest.textContent = "Suggest links";
+    }
+  });
 
   const article = document.createElement("article");
   article.className = "vault-md";
@@ -232,6 +448,7 @@ async function selectNote(entry) {
 
   vaultDetail.innerHTML = "";
   vaultDetail.appendChild(head);
+  vaultDetail.appendChild(suggestions);
   vaultDetail.appendChild(article);
   vaultDetail.classList.remove("vault-detail--in");
   void vaultDetail.offsetWidth;
@@ -257,4 +474,16 @@ export async function loadVault() {
   }
   renderTags();
   renderList();
+}
+
+export function renderStatusAndRefreshVault(status) {
+  renderStatus(status);
+  if (status?.phase !== "idle") return;
+  const activeView = document.querySelector(".view.active");
+  if (activeView?.id !== "viewVault") return;
+  const latest = Array.isArray(status.recentTranscripts) ? status.recentTranscripts[0] : null;
+  const key = latest ? `${latest.ts || ""}:${latest.text || ""}` : status.lastText || "";
+  if (!key || key === lastVaultRefreshKey) return;
+  lastVaultRefreshKey = key;
+  void loadVault();
 }

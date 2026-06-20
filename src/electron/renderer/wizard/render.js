@@ -52,6 +52,22 @@ export function setWizardEditingStatus(text, tone = "") {
   dom.wizardEditingStatus.classList.toggle("error", tone === "error");
 }
 
+export function setWizardObsidianStatus(text, tone = "") {
+  if (!dom.wizardObsidianStatus) return;
+  dom.wizardObsidianStatus.textContent = text;
+  dom.wizardObsidianStatus.classList.toggle("success", tone === "success");
+  dom.wizardObsidianStatus.classList.toggle("error", tone === "error");
+}
+
+export function syncWizardObsidianFields() {
+  if (!dom.wizardObsidianFolderGroup) return;
+  // Folder needed when captures go to Obsidian or its notes are an AI context source.
+  const needsFolder =
+    dom.wizardCaptureDestinationSelect?.value === "folder" ||
+    (dom.wizardUseObsidianCheck?.checked ?? false);
+  dom.wizardObsidianFolderGroup.classList.toggle("hidden", !needsFolder);
+}
+
 export function setWizardBusy(isBusy) {
   wizardState.busy = isBusy;
   const buttons = [
@@ -63,6 +79,9 @@ export function setWizardBusy(isBusy) {
     dom.wizardTestLocalBtn,
     dom.wizardCloudAdvancedToggleBtn,
     dom.wizardCloudApiKeyPeekBtn,
+    dom.wizardChooseObsidianFolderBtn,
+    dom.wizardUseObsidianCheck,
+    dom.wizardObsidianFolderInput,
     dom.wizardEditingEnabledCheck,
     dom.wizardEditingProviderSelect,
     dom.wizardEditingEndpointInput,
@@ -94,15 +113,6 @@ export function renderWizardCloudAdvanced() {
     : "Show advanced options";
 }
 
-export function renderWizardPrefsAdvanced() {
-  if (!dom.wizardPrefsAdvancedFields || !dom.wizardPrefsAdvancedToggleBtn) return;
-  const open = wizardState.prefsAdvancedOpen;
-  dom.wizardPrefsAdvancedFields.classList.toggle("hidden", !open);
-  dom.wizardPrefsAdvancedToggleBtn.textContent = open
-    ? "Hide advanced options"
-    : "Show advanced options";
-}
-
 export function renderWizardModeView(mode) {
   dom.wizardModeLocalBtn.classList.toggle("active", mode === "local");
   dom.wizardModeCloudBtn.classList.toggle("active", mode === "cloud");
@@ -118,10 +128,11 @@ export function renderWizardModeView(mode) {
 }
 
 const STEP_TITLES = [
-  ["Choose Your Mode",        "Select how TapTalk should process your voice"],
-  ["Set Up AI Engine",        "Configure your transcription engine"],
-  ["Grant Permissions",       "Allow TapTalk to record audio and listen for hotkeys"],
-  ["Set Your Preferences",    "Almost done — pick your language and paste settings"],
+  ["Choose Your Mode",   "Select how TapTalk should process your voice"],
+  ["Set Up AI Engine",   "Configure your transcription engine and language"],
+  ["Grant Permissions",  "Allow TapTalk to record audio and listen for hotkeys"],
+  ["Connect Your Vault", "Optionally save captures to Obsidian and use notes as context"],
+  ["AI & Integrations",  "Voice-edit selected text and connect AI agents"],
 ];
 
 const wizardDots = () => document.querySelectorAll(".wz-dot");
@@ -136,7 +147,8 @@ export function renderWizardStepView(step) {
   dom.wizardStepMode.classList.toggle("hidden", wizardState.step !== 1);
   dom.wizardStepEngine.classList.toggle("hidden", wizardState.step !== 2);
   dom.wizardStepPermissions.classList.toggle("hidden", wizardState.step !== 3);
-  dom.wizardStepPreferences.classList.toggle("hidden", wizardState.step !== 4);
+  dom.wizardStepVault.classList.toggle("hidden", wizardState.step !== 4);
+  dom.wizardStepIntegrations.classList.toggle("hidden", wizardState.step !== 5);
 
   if (dom.wizardLanguageIncludeEnglishRow) {
     const isCpp = dom.wizardEngineSelect?.value === "whisper-cpp";
@@ -147,7 +159,8 @@ export function renderWizardStepView(step) {
     dom.wizardStepChip1,
     dom.wizardStepChip2,
     dom.wizardStepChip3,
-    dom.wizardStepChip4
+    dom.wizardStepChip4,
+    dom.wizardStepChip5
   ];
   chips.forEach((chip, index) => {
     const chipStep = index + 1;
@@ -173,6 +186,4 @@ export function renderWizardStepView(step) {
   const [title, subtitle] = STEP_TITLES[wizardState.step - 1] ?? ["", ""];
   if (dom.wizardStepTitle) dom.wizardStepTitle.textContent = title;
   if (dom.wizardStepSubtitle) dom.wizardStepSubtitle.textContent = subtitle;
-
-  renderWizardPrefsAdvanced();
 }
